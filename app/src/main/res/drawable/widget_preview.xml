@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 小组件预览图 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#6200EE"
+        android:pathData="M0,0h120v120h-120z" />
+    <!-- 文字 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,45h60v10h-60zM30,60h50v8h-50zM30,72h55v8h-55z" />
+</vector>

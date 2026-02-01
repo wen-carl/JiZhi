@@ -1,0 +1,918 @@
+package com.jizhi.ui.setting
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.jizhi.data.BackgroundColorOption
+import com.jizhi.data.FontOption
+import com.jizhi.data.FontOptions
+import com.jizhi.data.LineBreakMode
+import com.jizhi.data.LineBreakModeOptions
+import com.jizhi.data.UpdateIntervalOptions
+import com.jizhi.data.WidgetPreferences
+import com.jizhi.ui.theme.JiZhiTheme
+import com.jizhi.widget.SentenceWidgetProvider
+import com.jizhi.worker.SentenceUpdateWorker
+import dagger.hilt.android.AndroidEntryPoint
+
+/**
+ * 设置页面
+ * 配置小组件更新周期、换行模式和背景色
+ */
+@AndroidEntryPoint
+class SettingActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
+        setContent {
+            JiZhiTheme {
+                SettingScreen(
+                    onBackClick = { finish() }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingScreen(
+    onBackClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val widgetPreferences = remember { WidgetPreferences(context) }
+
+    var selectedInterval by remember { mutableFloatStateOf(widgetPreferences.getUpdateInterval(0)) }
+    var selectedLineBreakMode by remember {
+        mutableIntStateOf(widgetPreferences.getLineBreakMode().value)
+    }
+    var backgroundColor by remember {
+        mutableIntStateOf(widgetPreferences.getWidgetBackgroundColor())
+    }
+    var selectedColorName by remember {
+        mutableStateOf(findColorName(backgroundColor, WidgetPreferences.BACKGROUND_COLORS))
+    }
+    var textColor by remember {
+        mutableIntStateOf(widgetPreferences.getWidgetTextColor())
+    }
+    var selectedTextColorName by remember {
+        mutableStateOf(findColorName(textColor, WidgetPreferences.TEXT_COLORS))
+    }
+    var selectedFontId by remember {
+        mutableStateOf(widgetPreferences.getSelectedFontId())
+    }
+    var selectedFontName by remember {
+        mutableStateOf(getFontDisplayName(widgetPreferences.getSelectedFontId(), context))
+    }
+
+    // BottomSheet 状态
+    var showIntervalSheet by remember { mutableStateOf(false) }
+    var showLineBreakSheet by remember { mutableStateOf(false) }
+    var showColorSheet by remember { mutableStateOf(false) }
+    var showTextColorSheet by remember { mutableStateOf(false) }
+    var showCustomColorDialog by remember { mutableStateOf(false) }
+    var showCustomTextColorDialog by remember { mutableStateOf(false) }
+    var showFontSheet by remember { mutableStateOf(false) }
+    var showAddFontDialog by remember { mutableStateOf(false) }
+
+    // 文件选择器
+    rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // 复制字体文件到应用私有目录
+            copyFontToPrivateDir(context, it)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("设置") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "返回"
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // 小组件更新周期设置
+            item {
+                SettingItem(
+                    title = "小组件更新周期",
+                    value = getIntervalDisplayText(selectedInterval),
+                    onClick = { showIntervalSheet = true }
+                )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
+            // 换行模式设置
+            item {
+                SettingItem(
+                    title = "诗词显示换行",
+                    value = LineBreakModeOptions.options.find { it.first == selectedLineBreakMode }?.second
+                        ?: "",
+                    onClick = { showLineBreakSheet = true }
+                )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
+            // 字体设置
+            item {
+                SettingItemWithFontPreview(
+                    title = "应用字体",
+                    value = selectedFontName,
+                    onClick = { showFontSheet = true }
+                )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
+            // 小组件背景色设置
+            item {
+                SettingItemWithPreview(
+                    title = "小组件背景色",
+                    value = selectedColorName,
+                    color = backgroundColor,
+                    onClick = { showColorSheet = true }
+                )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
+            // 小组件文本颜色设置
+            item {
+                SettingItemWithPreview(
+                    title = "小组件文本颜色",
+                    value = selectedTextColorName,
+                    color = textColor,
+                    onClick = { showTextColorSheet = true }
+                )
+            }
+        }
+    }
+
+    // 更新周期选择 BottomSheet
+    if (showIntervalSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showIntervalSheet = false }
+        ) {
+            Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                Text(
+                    text = "选择更新周期",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                )
+
+                UpdateIntervalOptions.options.forEachIndexed { index, (hours, displayText) ->
+                    Column {
+                        ListItem(
+                            headlineContent = { Text(displayText) },
+                            trailingContent = {
+                                if (selectedInterval == hours) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "已选择",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier.clickable {
+                                selectedInterval = hours
+                                widgetPreferences.saveUpdateInterval(0, hours)
+                                SentenceUpdateWorker.scheduleUpdate(context, hours)
+                                showIntervalSheet = false
+                            }
+                        )
+                        if (index < UpdateIntervalOptions.options.lastIndex) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 换行模式选择 BottomSheet
+    if (showLineBreakSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showLineBreakSheet = false }
+        ) {
+            Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                Text(
+                    text = "选择换行模式",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                )
+
+                LineBreakModeOptions.options.forEachIndexed { index, (value, displayName) ->
+                    Column {
+                        ListItem(
+                            headlineContent = { Text(displayName) },
+                            supportingContent = {
+                                Text(
+                                    text = LineBreakModeOptions.descriptions[value] ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            trailingContent = {
+                                if (selectedLineBreakMode == value) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "已选择",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier.clickable {
+                                selectedLineBreakMode = value
+                                widgetPreferences.saveLineBreakMode(LineBreakMode.fromValue(value))
+                                showLineBreakSheet = false
+                            }
+                        )
+                        if (index < LineBreakModeOptions.options.lastIndex) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 背景色选择 BottomSheet
+    if (showColorSheet) {
+        ColorPickerBottomSheet(
+            currentColor = backgroundColor,
+            currentColorName = selectedColorName,
+            onColorSelected = { color, name ->
+                backgroundColor = color
+                selectedColorName = name
+                widgetPreferences.saveWidgetBackgroundColor(color)
+                // 发送广播刷新小组件
+                sendWidgetUpdateBroadcast(context)
+                showColorSheet = false
+            },
+            onCustomClick = { showCustomColorDialog = true },
+            onDismiss = { showColorSheet = false }
+        )
+    }
+
+    // 自定义颜色对话框
+    if (showCustomColorDialog) {
+        CustomColorDialog(
+            currentColor = backgroundColor,
+            onDismiss = { showCustomColorDialog = false },
+            onConfirm = { color, name ->
+                backgroundColor = color
+                selectedColorName = name
+                widgetPreferences.saveWidgetBackgroundColor(color)
+                // 发送广播刷新小组件
+                sendWidgetUpdateBroadcast(context)
+                showCustomColorDialog = false
+            }
+        )
+    }
+
+    // 文本颜色选择 BottomSheet
+    if (showTextColorSheet) {
+        ColorPickerBottomSheet(
+            currentColor = textColor,
+            currentColorName = selectedTextColorName,
+            onColorSelected = { color, name ->
+                textColor = color
+                selectedTextColorName = name
+                widgetPreferences.saveWidgetTextColor(color)
+                // 发送广播刷新小组件
+                sendWidgetUpdateBroadcast(context)
+                showTextColorSheet = false
+            },
+            onCustomClick = { showCustomTextColorDialog = true },
+            onDismiss = { showTextColorSheet = false },
+            colorOptions = WidgetPreferences.TEXT_COLORS
+        )
+    }
+
+    // 自定义文本颜色对话框
+    if (showCustomTextColorDialog) {
+        CustomColorDialog(
+            currentColor = textColor,
+            onDismiss = { showCustomTextColorDialog = false },
+            onConfirm = { color, name ->
+                textColor = color
+                selectedTextColorName = name
+                widgetPreferences.saveWidgetTextColor(color)
+                // 发送广播刷新小组件
+                sendWidgetUpdateBroadcast(context)
+                showCustomTextColorDialog = false
+            }
+        )
+    }
+
+    // 字体选择 BottomSheet
+    if (showFontSheet) {
+        FontPickerBottomSheet(
+            currentFontId = selectedFontId,
+            currentFontName = selectedFontName,
+            fontOptions = FontOptions.getAllOptions(context),
+            onFontSelected = { fontId, fontName ->
+                selectedFontId = fontId
+                selectedFontName = fontName
+                widgetPreferences.saveSelectedFontId(fontId)
+                showFontSheet = false
+            },
+            onAddFontClick = { showAddFontDialog = true },
+            onDismiss = { showFontSheet = false }
+        )
+    }
+
+    // 添加字体对话框
+    if (showAddFontDialog) {
+        AddFontDialog(
+            onDismiss = { showAddFontDialog = false },
+            onFontAdded = { fontPath ->
+                widgetPreferences.addCustomFontPath(fontPath)
+                showAddFontDialog = false
+            }
+        )
+    }
+}
+
+/**
+ * 发送小组件更新广播
+ */
+private fun sendWidgetUpdateBroadcast(context: android.content.Context) {
+    val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
+        action = SentenceWidgetProvider.ACTION_UPDATE_ALL
+    }
+    context.sendBroadcast(intent)
+}
+
+@Composable
+private fun SettingItem(
+    title: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(value) },
+        trailingContent = {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+@Composable
+private fun SettingItemWithPreview(
+    title: String,
+    value: String,
+    color: Int,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(value) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(androidx.compose.ui.graphics.Color(color))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+private fun getIntervalDisplayText(hours: Float): String {
+    return UpdateIntervalOptions.options.find { it.first == hours }?.second ?: "未知"
+}
+
+private fun findColorName(color: Int, options: List<BackgroundColorOption>): String {
+    return options.find { it.color == color }?.name ?: "自定义"
+}
+
+/**
+ * 颜色选择 BottomSheet
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ColorPickerBottomSheet(
+    currentColor: Int,
+    currentColorName: String,
+    onColorSelected: (Int, String) -> Unit,
+    onCustomClick: () -> Unit,
+    onDismiss: () -> Unit,
+    colorOptions: List<BackgroundColorOption> = WidgetPreferences.BACKGROUND_COLORS,
+    title: String = "选择颜色"
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 预设颜色网格
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val chunks = colorOptions.chunked(4)
+                items(chunks) { rowColors ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        rowColors.forEach { option ->
+                            ColorOptionItem(
+                                option = option,
+                                isSelected = currentColor == option.color,
+                                onClick = { onColorSelected(option.color, option.name) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        // 填充空白
+                        repeat(4 - rowColors.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 自定义选项
+            ListItem(
+                headlineContent = { Text("自定义颜色") },
+                supportingContent = { Text("输入ARGB格式颜色值") },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingContent = {
+                    if (currentColorName == "自定义") {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "已选择",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                modifier = Modifier.clickable(onClick = onCustomClick)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ColorOptionItem(
+    option: BackgroundColorOption,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(androidx.compose.ui.graphics.Color(option.color))
+                .then(
+                    if (isSelected) {
+                        Modifier.border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    } else {
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                    }
+                )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = option.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * 自定义颜色对话框
+ */
+@Composable
+private fun CustomColorDialog(
+    currentColor: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, String) -> Unit
+) {
+    var colorText by remember { mutableStateOf(String.format("#%08X", currentColor)) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var previewColor by remember { mutableStateOf(currentColor) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("自定义背景色") },
+        text = {
+            Column {
+                Text(
+                    text = "输入ARGB格式颜色值（如 #80000000）",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = colorText,
+                    onValueChange = { newValue ->
+                        colorText = newValue
+                        val parsed = parseArgbColor(newValue)
+                        if (parsed != null) {
+                            previewColor = parsed
+                            errorMessage = null
+                        } else {
+                            errorMessage = "格式无效，请输入 #AARRGGBB 或 RRGGBB 格式"
+                        }
+                    },
+                    label = { Text("颜色值") },
+                    isError = errorMessage != null,
+                    supportingText = errorMessage?.let { { Text(it) } },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 颜色预览
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "预览：",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .background(androidx.compose.ui.graphics.Color(previewColor))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline,
+                                MaterialTheme.shapes.small
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = String.format("#%08X", previewColor),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val parsed = parseArgbColor(colorText)
+                    if (parsed != null) {
+                        onConfirm(parsed, "自定义")
+                    }
+                },
+                enabled = errorMessage == null && parseArgbColor(colorText) != null
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 解析ARGB颜色字符串为Int
+ */
+private fun parseArgbColor(colorStr: String): Int? {
+    return try {
+        var str = colorStr.trim()
+        if (str.startsWith("#")) {
+            str = str.substring(1)
+        }
+        if (str.length == 6) {
+            // 添加透明度（完全不透明）
+            str = "FF$str"
+        }
+        if (str.length == 8) {
+            java.lang.Long.parseLong(str, 16).toInt()
+        } else {
+            null
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/**
+ * 字体预览设置项
+ */
+@Composable
+private fun SettingItemWithFontPreview(
+    title: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(value) },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+/**
+ * 字体选择 BottomSheet
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FontPickerBottomSheet(
+    currentFontId: String,
+    currentFontName: String,
+    fontOptions: List<FontOption>,
+    onFontSelected: (String, String) -> Unit,
+    onAddFontClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "选择字体",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 字体选项列表
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(fontOptions) { fontOption ->
+                    ListItem(
+                        headlineContent = { Text(fontOption.name) },
+                        supportingContent = {
+                            if (fontOption.isCustom) {
+                                Text(
+                                    text = fontOption.fontFamily,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        leadingContent = {
+                            if (fontOption.isCustom) {
+                                Icon(
+                                    imageVector = Icons.Default.Folder,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        trailingContent = {
+                            if (currentFontId == fontOption.id) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "已选择",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        modifier = Modifier.clickable {
+                            onFontSelected(fontOption.id, fontOption.name)
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 添加自定义字体
+            ListItem(
+                headlineContent = { Text("添加自定义字体") },
+                supportingContent = { Text("从文件选择 .ttf 或 .otf 字体文件") },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                modifier = Modifier.clickable(onClick = onAddFontClick)
+            )
+        }
+    }
+}
+
+/**
+ * 添加字体对话框
+ */
+@Composable
+private fun AddFontDialog(
+    onDismiss: () -> Unit,
+    onFontAdded: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val fontFilePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // 复制字体文件到应用私有目录
+            val fontPath = copyFontToPrivateDir(context, it)
+            if (fontPath != null) {
+                onFontAdded(fontPath)
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加自定义字体") },
+        text = {
+            Column {
+                Text(
+                    text = "选择字体文件（.ttf 或 .otf 格式）",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "提示：自定义字体会应用到整个应用，包括首页、详情页、历史记录和小组件。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    fontFilePicker.launch("font/*")
+                }
+            ) {
+                Text("选择文件")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 获取字体显示名称
+ */
+private fun getFontDisplayName(fontId: String, context: android.content.Context): String {
+    val fontOption = FontOptions.getOptionById(context, fontId)
+    return fontOption?.name ?: "衬线体"
+}
+
+/**
+ * 复制字体文件到应用私有目录
+ */
+private fun copyFontToPrivateDir(context: android.content.Context, uri: Uri): String? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val fileName = "font_${System.currentTimeMillis()}.ttf"
+        val fontFile = context.getFileStreamPath(fileName)
+
+        fontFile.outputStream().use { output ->
+            inputStream.copyTo(output)
+        }
+        inputStream.close()
+
+        fontFile.absolutePath
+    } catch (e: Exception) {
+        null
+    }
+}

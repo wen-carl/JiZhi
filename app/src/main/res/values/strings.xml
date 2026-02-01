@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用名称 -->
+    <string name="app_name">JiZhi</string>
+
+    <!-- 默认值 -->
+    <string name="default_sentence">今天也要加油哦！</string>
+    <string name="default_title">诗词</string>
+    <string name="default_author">【未知】未知</string>
+    <string name="default_dynasty_author">【未知】未知</string>
+
+    <!-- 主页面 -->
+    <string name="app_bar_title">今日诗词</string>
+    <string name="content_description_favorite">喜欢</string>
+    <string name="content_description_settings">设置</string>
+    <string name="content_description_history">历史记录</string>
+    <string name="loading_message">正在获取今日诗词...</string>
+    <string name="refresh_button">换一句</string>
+    <string name="retry_button">重试</string>
+
+    <!-- 历史页面 -->
+    <string name="history_title">历史记录</string>
+    <string name="content_description_back">返回</string>
+    <string name="clear_history">清空历史</string>
+    <string name="history_loading">正在加载历史记录...</string>
+    <string name="history_empty">暂无历史记录</string>
+    <string name="history_empty_hint">从小组件获取诗句后将自动保存</string>
+
+    <!-- 删除确认对话框 -->
+    <string name="delete_confirmation_title">删除确认</string>
+    <string name="delete_confirmation_message">确定要删除这条记录吗？</string>
+    <string name="delete_button">删除</string>
+    <string name="cancel_button">取消</string>
+
+    <!-- 清空确认对话框 -->
+    <string name="clear_all_confirmation_title">清空确认</string>
+    <string name="clear_all_confirmation_message">确定要清空所有历史记录吗？此操作不可恢复。</string>
+    <string name="clear_all_button">清空</string>
+
+    <!-- 喜欢状态 -->
+    <string name="favorite_added">已喜欢</string>
+    <string name="favorite_add">喜欢</string>
+
+    <!-- 删除操作 -->
+    <string name="delete_action">删除</string>
+
+    <!-- 详情页面 -->
+    <string name="detail_title">诗词详情</string>
+    <string name="content_description_back_alt">返回</string>
+    <string name="favorite_removed">取消喜欢</string>
+    <string name="favorite_added_alt">喜欢</string>
+    <string name="recommendation_reason">推荐理由</string>
+    <string name="tags_label">标签</string>
+
+    <!-- 小组件配置 -->
+    <string name="widget_config_title">小组件配置</string>
+    <string name="widget_config_description">点击小组件可打开配置界面</string>
+    <string name="widget_config_save">保存配置</string>
+
+    <!-- 错误消息 -->
+    <string name="error_network">网络错误，请检查网络连接</string>
+    <string name="error_unknown">发生未知错误</string>
+    <string name="error_load_failed">加载失败</string>
+
+    <!-- 小组件 -->
+    <string name="widget_description">在桌面显示励志句子的小组件</string>
+    <string name="widget_empty_message">今天也要加油哦！</string>
+</resources>

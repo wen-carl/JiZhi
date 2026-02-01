@@ -1,0 +1,31 @@
+name: OpenCode 集成
+
+# 触发条件：在 Issue 或 PR Comment 中提及 @opencode 或 /oc
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  opencode:
+    runs-on: ubuntu-latest
+    # 仅当评论内容包含 @opencode 或 /oc 时触发
+    if: github.event.comment.body contains '@opencode' || github.event.comment.body contains '/oc'
+
+    steps:
+    # 1. 检出代码仓库
+    - name: 检出代码仓库
+      uses: actions/checkout@v4
+
+    # 2. 运行 OpenCode 处理任务
+    - name: 执行 OpenCode
+      uses: opencode-ai/github-action@v1
+      with:
+        # 从 Secrets 获取 API Key
+        api-key: ${{ secrets.OPENCODE_API_KEY }}
+        # 可选的模型配置，默认使用 Claude Sonnet 4
+        model: ${{ secrets.OPENCODE_MODEL || 'claude-sonnet-4-20250514' }}
+      env:
+        # 传递 GitHub Token 用于操作仓库
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

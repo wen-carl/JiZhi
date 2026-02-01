@@ -1,0 +1,408 @@
+package com.jizhi.ui.main
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jizhi.data.PoemFormatter
+import com.jizhi.data.WidgetPreferences
+import com.jizhi.data.local.SentenceEntity
+
+/**
+ * 主页面内容
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(
+    viewModel: MainViewModel,
+    onHistoryClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    fromWidget: Boolean = false
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // 根据入口类型加载数据
+    LaunchedEffect(fromWidget) {
+        viewModel.loadTodaySentence(fromWidget = fromWidget)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("今日诗词") },
+                actions = {
+                    val isFavorite = when (uiState) {
+                        is MainUiState.Success -> (uiState as MainUiState.Success).sentence.isFavorite
+                        is MainUiState.WidgetSentence -> (uiState as MainUiState.WidgetSentence).isFavorite
+                        else -> false
+                    }
+                    val canToggleFavorite = uiState is MainUiState.Success
+
+                    val heartColor by animateColorAsState(
+                        targetValue = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "heartColor"
+                    )
+
+                    val heartScale by animateFloatAsState(
+                        targetValue = if (isFavorite) 1.2f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "heartScale"
+                    )
+
+                    IconButton(
+                        onClick = { viewModel.toggleFavorite() },
+                        enabled = canToggleFavorite
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "喜欢",
+                            tint = if (canToggleFavorite) heartColor else heartColor.copy(alpha = 0.5f),
+                            modifier = Modifier.scale(heartScale)
+                        )
+                    }
+
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "设置",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(onClick = onHistoryClick) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "历史记录",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            when (val state = uiState) {
+                is MainUiState.Loading -> {
+                    LoadingContent()
+                }
+
+                is MainUiState.Success -> {
+                    SuccessContent(
+                        sentence = state.sentence,
+                        onRefresh = { viewModel.refresh() },
+                        onSentenceClick = { viewModel.showDetail(state.sentence) }
+                    )
+                }
+
+                is MainUiState.WidgetSentence -> {
+                    WidgetSentenceContent(
+                        widgetSentence = state,
+                        onRefresh = { viewModel.refresh() },
+                        onSentenceClick = { viewModel.showWidgetDetail(state) }
+                    )
+                }
+
+                is MainUiState.Error -> {
+                    ErrorContent(
+                        message = state.message,
+                        onRetry = { viewModel.refresh() }
+                    )
+                }
+
+                else -> {
+                    LoadingContent()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingContent() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator()
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("正在获取今日诗词...")
+    }
+}
+
+@Composable
+private fun SuccessContent(
+    sentence: SentenceEntity,
+    onRefresh: () -> Unit,
+    onSentenceClick: () -> Unit
+) {
+    // 获取换行模式并格式化内容
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val lineBreakMode = remember { WidgetPreferences(context).getLineBreakMode() }
+    val formattedContent = remember(sentence.content, lineBreakMode) {
+        PoemFormatter.format(sentence.content, lineBreakMode)
+    }
+    val lines = remember(formattedContent) { PoemFormatter.splitLines(formattedContent) }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 诗词卡片（可点击进入详情）
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onSentenceClick),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 诗词内容 - 主内容，大字体
+                if (lines.size > 1) {
+                    // 多行显示
+                    lines.forEach { line ->
+                        Text(
+                            text = line,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 48.sp,
+                            fontFamily = FontFamily.Serif,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                } else {
+                    Text(
+                        text = formattedContent,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 48.sp,
+                        fontFamily = FontFamily.Serif,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 标题信息 - 副内容，小字体，浅色
+                Text(
+                    text = sentence.title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = FontFamily.Serif,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "【${sentence.dynasty}】${sentence.author}",
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Serif,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onRefresh,
+            modifier = Modifier
+                .height(52.dp)
+                .widthIn(min = 120.dp),
+            shape = RoundedCornerShape(26.dp)
+        ) {
+            Text("换一句")
+        }
+    }
+}
+
+@Composable
+private fun ErrorContent(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = message,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Text("重试")
+        }
+    }
+}
+
+/**
+ * 小组件数据内容组件（无数据库记录时直接显示）
+ */
+@Composable
+fun WidgetSentenceContent(
+    widgetSentence: MainUiState.WidgetSentence,
+    onRefresh: () -> Unit,
+    onSentenceClick: () -> Unit
+) {
+    // 获取换行模式并格式化内容
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val lineBreakMode = remember { WidgetPreferences(context).getLineBreakMode() }
+    val formattedContent = remember(widgetSentence.content, lineBreakMode) {
+        PoemFormatter.format(widgetSentence.content, lineBreakMode)
+    }
+    val lines = remember(formattedContent) { PoemFormatter.splitLines(formattedContent) }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 小组件数据卡片（可点击进入详情）
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onSentenceClick),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (lines.size > 1) {
+                    // 多行显示
+                    lines.forEach { line ->
+                        Text(
+                            text = line,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 48.sp,
+                            fontFamily = FontFamily.Serif,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                } else {
+                    Text(
+                        text = formattedContent,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 48.sp,
+                        fontFamily = FontFamily.Serif,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = widgetSentence.title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "【${widgetSentence.dynasty}】${widgetSentence.author}",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onRefresh,
+            modifier = Modifier
+                .height(52.dp)
+                .widthIn(min = 120.dp),
+            shape = RoundedCornerShape(26.dp)
+        ) {
+            Text("换一句")
+        }
+    }
+}
