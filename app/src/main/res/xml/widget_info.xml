@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 句子小组件配置信息 -->
+<?xml version="1.0" encoding="utf-8"?><!-- 句子小组件配置信息 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="40dp"

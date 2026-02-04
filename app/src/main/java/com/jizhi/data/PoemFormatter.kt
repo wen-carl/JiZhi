@@ -10,40 +10,39 @@ object PoemFormatter {
      * 根据换行模式格式化诗词内容
      * @param content 原始内容
      * @param lineBreakMode 换行模式
+     * @param maxCharsPerLine 每行最大字符数（用于智能标点换行判断）
      * @return 格式化后的内容
      */
-    fun format(content: String, lineBreakMode: LineBreakMode): String {
+    fun format(
+        content: String,
+        lineBreakMode: LineBreakMode,
+        maxCharsPerLine: Int = Int.MAX_VALUE
+    ): String {
         return when (lineBreakMode) {
             LineBreakMode.DEFAULT -> content
-            LineBreakMode.AUTO_PUNCTUATION -> formatWithAutoPunctuation(content)
+            LineBreakMode.AUTO_PUNCTUATION -> formatWithAutoPunctuation(content, maxCharsPerLine)
             LineBreakMode.FORCE_PUNCTUATION -> formatWithForcePunctuation(content)
         }
     }
 
     /**
-     * 直接格式化 List<String> 内容
-     */
-    fun formatList(contentList: List<String>, lineBreakMode: LineBreakMode): String {
-        if (contentList.isEmpty()) return ""
-        val joinedContent = contentList.joinToString("\n")
-        return format(joinedContent, lineBreakMode)
-    }
-
-    /**
      * 智能标点换行
-     * 一行显示不下时才在标点处换行
+     * 一行能显示下就不换行，一行显示不下则在标点处换行
+     * @param content 原始内容
+     * @param maxCharsPerLine 每行最大字符数
      */
-    private fun formatWithAutoPunctuation(content: String): String {
-        // 短诗（20字以内）直接按标点换行
-        if (content.length <= 20) {
+    private fun formatWithAutoPunctuation(content: String, maxCharsPerLine: Int): String {
+        // 一行能显示下，不换行
+        if (content.length <= maxCharsPerLine) {
             return content
-                .replace("。", "。\n")
-                .replace("，", "，\n")
-                .replace("！", "！\n")
-                .replace("？", "？\n")
-                .trim()
         }
+        // 一行显示不下，在标点处换行
         return content
+            .replace("。", "。\n")
+            .replace("，", "，\n")
+            .replace("！", "！\n")
+            .replace("？", "？\n")
+            .trim()
     }
 
     /**
@@ -69,13 +68,6 @@ object PoemFormatter {
         }
 
         return result.toString().trim()
-    }
-
-    /**
-     * 检查内容是否包含换行符
-     */
-    fun hasNewlines(content: String): Boolean {
-        return content.contains('\n')
     }
 
     /**

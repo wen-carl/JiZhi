@@ -1,7 +1,7 @@
 package com.jizhi.repository
 
 import android.content.Context
-import android.content.SharedPreferences
+import com.jizhi.data.local.DataStoreManager
 import com.jizhi.data.local.SentenceDao
 import com.jizhi.data.local.SentenceEntity
 import com.jizhi.data.remote.JinrishiciApiService
@@ -24,8 +24,6 @@ class SentenceRepository @Inject constructor(
     private val sentenceDao: SentenceDao,
     private val apiService: JinrishiciApiService
 ) {
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("jizhi_token_prefs", Context.MODE_PRIVATE)
 
     /**
      * 获取今日推荐诗句
@@ -43,9 +41,6 @@ class SentenceRepository @Inject constructor(
                 val entity = response.toEntity()
                 sentenceDao.insert(entity)
 
-                // 清理旧数据，保留最近100条
-                sentenceDao.deleteOldData(100)
-
                 Result.success(response)
             } else {
                 // 如果API返回错误，返回错误信息
@@ -62,23 +57,22 @@ class SentenceRepository @Inject constructor(
      * 如果没有则请求新的Token
      */
     private suspend fun getOrCreateToken(): String = withContext(Dispatchers.IO) {
-        var token = prefs.getString("user_token", null)
+        var token = DataStoreManager.getToken(context)
 
-        if (token.isNullOrEmpty()) {
+        token.ifEmpty {
             try {
                 val response = apiService.getToken()
                 if (response.status == "success") {
                     token = response.data
-                    prefs.edit().putString("user_token", token).apply()
+                    DataStoreManager.saveToken(context, token)
+                    token
                 } else {
-                    token = "default_token"
+                    ""
                 }
             } catch (e: Exception) {
-                token = "default_token"
+                ""
             }
         }
-
-        token ?: "default_token"
     }
 
     /**
@@ -158,20 +152,11 @@ class SentenceRepository @Inject constructor(
             translateList = origin?.translate ?: emptyList(),
             popularity = data.popularity,
             title = origin?.title ?: "未知",
-            dynasty = origin?.dynasty ?: "未知",
+            dynasty = (origin?.dynasty ?: "未知").removeSuffix("代"),
             author = origin?.author ?: "未知",
             matchTags = data.matchTags?.joinToString(",") ?: "",
             recommendedReason = data.recommendedReason,
             cacheAt = data.cacheAt
         )
     }
-}
-
-/**
- * 网络请求结果密封类
- */
-sealed class Resource<out T> {
-    data class Success<T>(val data: T) : Resource<T>()
-    data class Error(val message: String, val exception: Exception? = null) : Resource<Nothing>()
-    data object Loading : Resource<Nothing>()
 }

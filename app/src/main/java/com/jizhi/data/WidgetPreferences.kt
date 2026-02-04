@@ -1,9 +1,10 @@
 package com.jizhi.data
 
 import android.content.Context
-import android.content.SharedPreferences
-import android.graphics.Color
 import android.graphics.Typeface
+import com.jizhi.data.local.DataStoreManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -21,9 +22,9 @@ data class BackgroundColorOption(
 data class FontOption(
     val id: String,
     val name: String,
-    val fontFamily: String,  // Typeface 家族名称
-    val isCustom: Boolean = false,  // 是否是自定义字体
-    val fontPath: String? = null    // 自定义字体文件路径
+    val fontFamily: String,
+    val isCustom: Boolean = false,
+    val fontPath: String? = null
 )
 
 /**
@@ -37,48 +38,25 @@ object FontOptions {
         FontOption("monospace", "等宽体", "monospace")
     )
 
-    /**
-     * 获取所有可用字体选项（包括系统字体和自定义字体）
-     */
-    fun getAllOptions(context: Context): List<FontOption> {
+    suspend fun getOptionById(context: Context, id: String): FontOption? {
         val customFonts = loadCustomFonts(context)
-        return systemFonts + customFonts
+        return (systemFonts + customFonts).find { it.id == id }
     }
 
-    /**
-     * 加载自定义字体
-     */
-    private fun loadCustomFonts(context: Context): List<FontOption> {
-        val prefs = context.getSharedPreferences("jizhi_widget_prefs", Context.MODE_PRIVATE)
-        val fontPathsJson = prefs.getString("custom_font_paths", "[]") ?: "[]"
-        return try {
-            val fontPaths = JSONArray(fontPathsJson)
-            (0 until fontPaths.length()).map { index ->
-                val path = fontPaths.getString(index)
-                val fileName = path.substringAfterLast("/").substringBeforeLast(".")
-                FontOption(
-                    id = "custom_$index",
-                    name = fileName,
-                    fontFamily = path,
-                    isCustom = true,
-                    fontPath = path
-                )
-            }
-        } catch (e: Exception) {
-            emptyList()
+    private suspend fun loadCustomFonts(context: Context): List<FontOption> {
+        val fontPaths = DataStoreManager.getCustomFontPaths(context)
+        return fontPaths.mapIndexed { index, path ->
+            val fileName = path.substringAfterLast("/").substringBeforeLast(".")
+            FontOption(
+                id = "custom_$index",
+                name = fileName,
+                fontFamily = path,
+                isCustom = true,
+                fontPath = path
+            )
         }
     }
 
-    /**
-     * 根据 ID 获取字体选项
-     */
-    fun getOptionById(context: Context, id: String): FontOption? {
-        return getAllOptions(context).find { it.id == id }
-    }
-
-    /**
-     * 根据字体家族名称获取 Typeface
-     */
     fun getTypeface(context: Context, fontOption: FontOption?): Typeface {
         return if (fontOption?.isCustom == true && fontOption.fontPath != null) {
             try {
@@ -102,16 +80,7 @@ object FontOptions {
  */
 fun getDefaultSentences(): List<String> {
     return listOf(
-        "今天也要加油哦！",
-        "保持微笑，好运自然来",
-        "你是最棒的！",
-        "每天进步一点点",
-        "相信自己的选择",
-        "生活明朗，万物可爱",
-        "一切皆有可能",
-        "勇敢追求梦想",
-        "活出精彩的自己",
-        "今天也是美好的一天"
+        "今天也要加油哦！"
     )
 }
 
@@ -130,16 +99,7 @@ data class WidgetSentence(
  */
 fun getDefaultSentencesWithInfo(): List<WidgetSentence> {
     return listOf(
-        WidgetSentence("今天也要加油哦！", "励志", "现代", "匿名"),
-        WidgetSentence("保持微笑，好运自然来", "励志", "现代", "匿名"),
-        WidgetSentence("你是最棒的！", "励志", "现代", "匿名"),
-        WidgetSentence("每天进步一点点", "励志", "现代", "匿名"),
-        WidgetSentence("相信自己的选择", "励志", "现代", "匿名"),
-        WidgetSentence("生活明朗，万物可爱", "励志", "现代", "匿名"),
-        WidgetSentence("一切皆有可能", "励志", "现代", "匿名"),
-        WidgetSentence("勇敢追求梦想", "励志", "现代", "匿名"),
-        WidgetSentence("活出精彩的自己", "励志", "现代", "匿名"),
-        WidgetSentence("今天也是美好的一天", "励志", "现代", "匿名")
+        WidgetSentence("今天也要加油哦！", "励志", "现代", "匿名")
     )
 }
 
@@ -160,9 +120,6 @@ data class WidgetConfig(
     val backgroundImage: String? = null,
     val widgetSize: WidgetSize = WidgetSize.MEDIUM
 ) {
-    /**
-     * 随机获取一个句子
-     */
     fun getRandomSentence(): String {
         return sentences.randomOrNull() ?: "今天也要加油哦！"
     }
@@ -219,191 +176,177 @@ object LineBreakModeOptions {
 }
 
 /**
- * 小组件配置存储器
- * 使用SharedPreferences存储所有小组件的配置
+ * 常用背景色预设
  */
-class WidgetPreferences(context: Context) {
+object WidgetColors {
+    val BACKGROUND_COLORS = listOf(
+        BackgroundColorOption("透明", 0x00000000.toInt()),
+        BackgroundColorOption("纯白", 0xFFFFFFFF.toInt()),
+        BackgroundColorOption("纯黑", 0xFF000000.toInt()),
+        BackgroundColorOption("浅灰", 0xFFF5F5F5.toInt()),
+        BackgroundColorOption("深灰", 0xFF333333.toInt()),
+        BackgroundColorOption("淡蓝", 0xFFE3F2FD.toInt()),
+        BackgroundColorOption("淡绿", 0xFFE8F5E9.toInt()),
+        BackgroundColorOption("淡黄", 0xFFFFFDE7.toInt()),
+        BackgroundColorOption("淡粉", 0xFFFCE4EC.toInt()),
+        BackgroundColorOption("淡紫", 0xFFF3E5F5.toInt()),
+        BackgroundColorOption("半透明黑", 0x80000000.toInt()),
+        BackgroundColorOption("半透明白", 0x80FFFFFF.toInt())
+    )
+
+    val TEXT_COLORS = listOf(
+        BackgroundColorOption("纯白", 0xFFFFFFFF.toInt()),
+        BackgroundColorOption("纯黑", 0xFF000000.toInt()),
+        BackgroundColorOption("浅灰", 0xFFE0E0E0.toInt()),
+        BackgroundColorOption("深灰", 0xFF333333.toInt()),
+        BackgroundColorOption("淡红", 0xFFFFCDD2.toInt()),
+        BackgroundColorOption("淡蓝", 0xFFBBDEFB.toInt()),
+        BackgroundColorOption("淡绿", 0xFFC8E6C9.toInt()),
+        BackgroundColorOption("金色", 0xFFFFD54F.toInt())
+    )
+}
+
+/**
+ * 小组件配置存储器
+ * 使用 DataStore 存储所有小组件的配置
+ */
+class WidgetPreferences(private val context: Context) {
 
     companion object {
-        private const val PREFS_NAME = "jizhi_widget_prefs"
-
-        /**
-         * 常用背景色预设
-         */
-        val BACKGROUND_COLORS = listOf(
-            BackgroundColorOption("透明", 0x00000000.toInt()),
-            BackgroundColorOption("纯白", 0xFFFFFFFF.toInt()),
-            BackgroundColorOption("纯黑", 0xFF000000.toInt()),
-            BackgroundColorOption("浅灰", 0xFFF5F5F5.toInt()),
-            BackgroundColorOption("深灰", 0xFF333333.toInt()),
-            BackgroundColorOption("淡蓝", 0xFFE3F2FD.toInt()),
-            BackgroundColorOption("淡绿", 0xFFE8F5E9.toInt()),
-            BackgroundColorOption("淡黄", 0xFFFFFDE7.toInt()),
-            BackgroundColorOption("淡粉", 0xFFFCE4EC.toInt()),
-            BackgroundColorOption("淡紫", 0xFFF3E5F5.toInt()),
-            BackgroundColorOption("半透明黑", 0x80000000.toInt()),
-            BackgroundColorOption("半透明白", 0x80FFFFFF.toInt())
-        )
-
-        /**
-         * 常用文本颜色预设
-         */
-        val TEXT_COLORS = listOf(
-            BackgroundColorOption("纯白", 0xFFFFFFFF.toInt()),
-            BackgroundColorOption("纯黑", 0xFF000000.toInt()),
-            BackgroundColorOption("浅灰", 0xFFE0E0E0.toInt()),
-            BackgroundColorOption("深灰", 0xFF333333.toInt()),
-            BackgroundColorOption("淡红", 0xFFFFCDD2.toInt()),
-            BackgroundColorOption("淡蓝", 0xFFBBDEFB.toInt()),
-            BackgroundColorOption("淡绿", 0xFFC8E6C9.toInt()),
-            BackgroundColorOption("金色", 0xFFFFD54F.toInt())
-        )
+        val BACKGROUND_COLORS = WidgetColors.BACKGROUND_COLORS
+        val TEXT_COLORS = WidgetColors.TEXT_COLORS
     }
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-    /**
-     * 保存小组件配置
-     */
-    fun saveWidgetConfig(config: WidgetConfig) {
-        val json = config.toJson()
-        prefs.edit().putString("widget_${config.widgetId}", json).apply()
-    }
-
-    /**
-     * 获取小组件配置
-     */
-    fun getWidgetConfig(widgetId: Int): WidgetConfig? {
-        val json = prefs.getString("widget_$widgetId", null) ?: return null
-        return try {
-            parseWidgetConfigFromJson(json).copy(widgetId = widgetId)
-        } catch (e: Exception) {
-            null
+    suspend fun saveWidgetConfig(config: WidgetConfig) {
+        withContext(Dispatchers.IO) {
+            val json = config.toJson()
+            DataStoreManager.saveWidgetConfig(context, config.widgetId, json)
         }
     }
 
-    /**
-     * 删除小组件配置
-     */
-    fun removeWidgetConfig(widgetId: Int) {
-        prefs.edit().remove("widget_$widgetId").apply()
+    suspend fun getWidgetConfig(widgetId: Int): WidgetConfig? {
+        return withContext(Dispatchers.IO) {
+            val json =
+                DataStoreManager.getWidgetConfig(context, widgetId) ?: return@withContext null
+            try {
+                parseWidgetConfigFromJson(json).copy(widgetId = widgetId)
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 
-    /**
-     * 获取更新间隔（小时）
-     */
-    fun getUpdateInterval(widgetId: Int): Float {
+    suspend fun removeWidgetConfig(widgetId: Int) {
+        withContext(Dispatchers.IO) {
+            DataStoreManager.removeWidgetConfig(context, widgetId)
+        }
+    }
+
+    suspend fun getUpdateInterval(widgetId: Int): Float {
         return getWidgetConfig(widgetId)?.updateIntervalHours ?: 1f
     }
 
-    /**
-     * 保存更新间隔
-     */
-    fun saveUpdateInterval(widgetId: Int, intervalHours: Float) {
+    suspend fun saveUpdateInterval(widgetId: Int, intervalHours: Float) {
         val config = getWidgetConfig(widgetId) ?: WidgetConfig(widgetId)
         saveWidgetConfig(config.copy(updateIntervalHours = intervalHours))
     }
 
-    /**
-     * 获取换行模式
-     */
-    fun getLineBreakMode(): LineBreakMode {
-        val value = prefs.getInt("line_break_mode", LineBreakMode.DEFAULT.value)
-        return LineBreakMode.fromValue(value)
+    suspend fun getLineBreakMode(): LineBreakMode {
+        return withContext(Dispatchers.IO) {
+            val value = DataStoreManager.getLineBreakMode(context)
+            LineBreakMode.fromValue(value)
+        }
     }
 
-    /**
-     * 保存换行模式
-     */
-    fun saveLineBreakMode(mode: LineBreakMode) {
-        prefs.edit().putInt("line_break_mode", mode.value).apply()
+    suspend fun saveLineBreakMode(mode: LineBreakMode) {
+        withContext(Dispatchers.IO) {
+            DataStoreManager.saveLineBreakMode(context, mode.value)
+        }
     }
 
-    /**
-     * 获取小组件背景色（ARGB格式，默认透明）
-     */
-    fun getWidgetBackgroundColor(): Int {
-        return prefs.getInt("widget_background_color", Color.TRANSPARENT)
+    suspend fun getWidgetBackgroundColor(): Int {
+        return withContext(Dispatchers.IO) {
+            DataStoreManager.getWidgetBackgroundColor(context).toInt()
+        }
     }
 
-    /**
-     * 保存小组件背景色（ARGB格式）
-     */
-    fun saveWidgetBackgroundColor(color: Int) {
-        prefs.edit().putInt("widget_background_color", color).apply()
+    suspend fun saveWidgetBackgroundColor(color: Int) {
+        withContext(Dispatchers.IO) {
+            DataStoreManager.saveWidgetBackgroundColor(context, color.toLong())
+        }
     }
 
-    /**
-     * 获取小组件文本颜色（ARGB格式，默认白色）
-     */
-    fun getWidgetTextColor(): Int {
-        return prefs.getInt("widget_text_color", 0xFFFFFFFF.toInt())
+    suspend fun getWidgetTextColor(): Int {
+        return withContext(Dispatchers.IO) {
+            DataStoreManager.getWidgetTextColor(context).toInt()
+        }
     }
 
-    /**
-     * 保存小组件文本颜色（ARGB格式）
-     */
-    fun saveWidgetTextColor(color: Int) {
-        prefs.edit().putInt("widget_text_color", color).apply()
+    suspend fun saveWidgetTextColor(color: Int) {
+        withContext(Dispatchers.IO) {
+            DataStoreManager.saveWidgetTextColor(context, color.toLong())
+        }
     }
 
-    /**
-     * 获取当前选中的字体 ID
-     */
-    fun getSelectedFontId(): String {
-        return prefs.getString("selected_font_id", "serif") ?: "serif"
+    suspend fun getSelectedFontId(): String {
+        return withContext(Dispatchers.IO) {
+            DataStoreManager.getSelectedFontId(context)
+        }
     }
 
-    /**
-     * 保存选中的字体 ID
-     */
-    fun saveSelectedFontId(fontId: String) {
-        prefs.edit().putString("selected_font_id", fontId).apply()
+    suspend fun saveSelectedFontId(fontId: String) {
+        withContext(Dispatchers.IO) {
+            DataStoreManager.saveSelectedFontId(context, fontId)
+        }
     }
 
-    /**
-     * 获取当前选中的字体选项
-     */
-    fun getSelectedFontOption(context: Context): FontOption {
+    suspend fun getSelectedFontOption(): FontOption {
         val fontId = getSelectedFontId()
         return FontOptions.getOptionById(context, fontId)
             ?: FontOption("serif", "衬线体", "serif")
     }
 
-    /**
-     * 获取自定义字体文件列表
-     */
-    fun getCustomFontPaths(): List<String> {
-        val fontPathsJson = prefs.getString("custom_font_paths", "[]") ?: "[]"
-        return try {
-            val fontPaths = JSONArray(fontPathsJson)
-            (0 until fontPaths.length()).map { fontPaths.getString(it) }
-        } catch (e: Exception) {
-            emptyList()
+    suspend fun getCustomFontPaths(): List<String> {
+        return withContext(Dispatchers.IO) {
+            DataStoreManager.getCustomFontPaths(context)
         }
     }
 
-    /**
-     * 添加自定义字体文件路径
-     */
-    fun addCustomFontPath(fontPath: String) {
-        val currentPaths = getCustomFontPaths().toMutableList()
-        if (!currentPaths.contains(fontPath)) {
-            currentPaths.add(fontPath)
-            val json = JSONArray(currentPaths).toString()
-            prefs.edit().putString("custom_font_paths", json).apply()
+    suspend fun addCustomFontPath(fontPath: String) {
+        withContext(Dispatchers.IO) {
+            DataStoreManager.addCustomFontPath(context, fontPath)
         }
     }
 
-    /**
-     * 移除自定义字体文件路径
-     */
-    fun removeCustomFontPath(fontPath: String) {
-        val currentPaths = getCustomFontPaths().toMutableList()
-        currentPaths.remove(fontPath)
-        val json = JSONArray(currentPaths).toString()
-        prefs.edit().putString("custom_font_paths", json).apply()
+    suspend fun removeCustomFontPath(fontPath: String) {
+        withContext(Dispatchers.IO) {
+            DataStoreManager.removeCustomFontPath(context, fontPath)
+        }
+    }
+
+    suspend fun getAllOptions(): List<FontOption> {
+        return withContext(Dispatchers.IO) {
+            val customFonts =
+                DataStoreManager.getCustomFontPaths(context).mapIndexed { index, path ->
+                    val fileName = path.substringAfterLast("/").substringBeforeLast(".")
+                    FontOption(
+                        id = "custom_$index",
+                        name = fileName,
+                        fontFamily = path,
+                        isCustom = true,
+                        fontPath = path
+                    )
+                }
+            FontOptions.systemFonts + customFonts
+        }
+    }
+
+    suspend fun getOptionById(id: String): FontOption? {
+        return getAllOptions().find { it.id == id }
+    }
+
+    fun getTypeface(fontOption: FontOption?): Typeface {
+        return FontOptions.getTypeface(context, fontOption)
     }
 }
 

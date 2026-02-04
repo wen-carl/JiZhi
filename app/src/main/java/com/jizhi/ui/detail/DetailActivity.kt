@@ -39,7 +39,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -226,7 +228,10 @@ private fun DetailContent(
 ) {
     // 获取换行模式
     val context = LocalContext.current
-    val lineBreakMode = remember { WidgetPreferences(context).getLineBreakMode() }
+    var lineBreakMode by remember { mutableStateOf<com.jizhi.data.LineBreakMode?>(null) }
+    LaunchedEffect(Unit) {
+        lineBreakMode = WidgetPreferences(context).getLineBreakMode()
+    }
 
     // 判断诗词类型
     val poemType = remember(sentence.title, sentence.content) {
@@ -297,11 +302,13 @@ private fun DetailContent(
                             // 如果没有原文，用 content 模拟一行
                             listOf(sentence.content)
                         }
-                        PoemContent(
-                            originLines = displayLines,
-                            highlightedContent = highlightedContent,
-                            lineBreakMode = lineBreakMode
-                        )
+                        if (lineBreakMode != null) {
+                            PoemContent(
+                                originLines = displayLines,
+                                highlightedContent = highlightedContent,
+                                lineBreakMode = lineBreakMode!!
+                            )
+                        }
                     }
 
                     PoemType.CI -> {
@@ -311,11 +318,13 @@ private fun DetailContent(
                         } else {
                             listOf(sentence.content)
                         }
-                        CiContent(
-                            originLines = displayLines,
-                            highlightedContent = highlightedContent,
-                            lineBreakMode = lineBreakMode
-                        )
+                        if (lineBreakMode != null) {
+                            CiContent(
+                                originLines = displayLines,
+                                highlightedContent = highlightedContent,
+                                lineBreakMode = lineBreakMode!!
+                            )
+                        }
                     }
                 }
             }

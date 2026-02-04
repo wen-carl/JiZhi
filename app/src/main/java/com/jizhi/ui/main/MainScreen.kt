@@ -34,7 +34,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -47,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jizhi.data.PoemFormatter
 import com.jizhi.data.WidgetPreferences
 import com.jizhi.data.local.SentenceEntity
+import kotlinx.coroutines.async
 
 /**
  * 主页面内容
@@ -186,9 +190,17 @@ private fun SuccessContent(
 ) {
     // 获取换行模式并格式化内容
     val context = androidx.compose.ui.platform.LocalContext.current
-    val lineBreakMode = remember { WidgetPreferences(context).getLineBreakMode() }
+    val scope = rememberCoroutineScope()
+    var lineBreakMode by remember { mutableStateOf<com.jizhi.data.LineBreakMode?>(null) }
+    LaunchedEffect(Unit) {
+        lineBreakMode = scope.async {
+            WidgetPreferences(context).getLineBreakMode()
+        }.await()
+    }
     val formattedContent = remember(sentence.content, lineBreakMode) {
-        PoemFormatter.format(sentence.content, lineBreakMode)
+        lineBreakMode?.let { mode ->
+            PoemFormatter.format(sentence.content, mode)
+        } ?: sentence.content
     }
     val lines = remember(formattedContent) { PoemFormatter.splitLines(formattedContent) }
 
@@ -314,9 +326,17 @@ fun WidgetSentenceContent(
 ) {
     // 获取换行模式并格式化内容
     val context = androidx.compose.ui.platform.LocalContext.current
-    val lineBreakMode = remember { WidgetPreferences(context).getLineBreakMode() }
+    val scope = rememberCoroutineScope()
+    var lineBreakMode by remember { mutableStateOf<com.jizhi.data.LineBreakMode?>(null) }
+    LaunchedEffect(Unit) {
+        lineBreakMode = scope.async {
+            WidgetPreferences(context).getLineBreakMode()
+        }.await()
+    }
     val formattedContent = remember(widgetSentence.content, lineBreakMode) {
-        PoemFormatter.format(widgetSentence.content, lineBreakMode)
+        lineBreakMode?.let { mode ->
+            PoemFormatter.format(widgetSentence.content, mode)
+        } ?: widgetSentence.content
     }
     val lines = remember(formattedContent) { PoemFormatter.splitLines(formattedContent) }
 

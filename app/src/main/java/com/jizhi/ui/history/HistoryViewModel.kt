@@ -134,12 +134,9 @@ class HistoryViewModel @Inject constructor(
 
     /**
      * 将指定句子更新到小组件
-     * 1. 保存到 SharedPreferences
-     * 2. 发送广播更新小组件
      */
     fun updateWidget(sentence: SentenceEntity) {
         viewModelScope.launch {
-            // 保存到 SharedPreferences
             JinrishiciClient.saveTodaySentenceForWidget(
                 context = context,
                 id = sentence.id,
@@ -151,7 +148,6 @@ class HistoryViewModel @Inject constructor(
                 author = sentence.author,
                 isFavorite = sentence.isFavorite
             )
-            // 发送广播更新小组件
             val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
                 action = SentenceWidgetProvider.ACTION_UPDATE_ALL
             }

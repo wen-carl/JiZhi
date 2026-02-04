@@ -12,7 +12,7 @@ appcompat = "1.7.0"
 material = "1.12.0"
 
 # Jetpack Compose
-composeBom = "2024.06.00"
+composeBom = "2024.10.01"
 activityCompose = "1.9.0"
 
 # Lifecycle
@@ -29,7 +29,7 @@ hiltWork = "1.2.0"
 room = "2.6.1"
 
 # WorkManager
-workManager = "2.9.0"
+workManager = "2.9.1"
 
 # App Startup
 startup = "1.1.1"

@@ -47,11 +47,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,15 +63,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.jizhi.data.BackgroundColorOption
 import com.jizhi.data.FontOption
-import com.jizhi.data.FontOptions
 import com.jizhi.data.LineBreakMode
 import com.jizhi.data.LineBreakModeOptions
 import com.jizhi.data.UpdateIntervalOptions
+import com.jizhi.data.WidgetColors
 import com.jizhi.data.WidgetPreferences
 import com.jizhi.ui.theme.JiZhiTheme
 import com.jizhi.widget.SentenceWidgetProvider
 import com.jizhi.worker.SentenceUpdateWorker
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 /**
  * 设置页面
@@ -99,28 +102,29 @@ fun SettingScreen(
 ) {
     val context = LocalContext.current
     val widgetPreferences = remember { WidgetPreferences(context) }
+    val scope = rememberCoroutineScope()
 
-    var selectedInterval by remember { mutableFloatStateOf(widgetPreferences.getUpdateInterval(0)) }
-    var selectedLineBreakMode by remember {
-        mutableIntStateOf(widgetPreferences.getLineBreakMode().value)
-    }
-    var backgroundColor by remember {
-        mutableIntStateOf(widgetPreferences.getWidgetBackgroundColor())
-    }
-    var selectedColorName by remember {
-        mutableStateOf(findColorName(backgroundColor, WidgetPreferences.BACKGROUND_COLORS))
-    }
-    var textColor by remember {
-        mutableIntStateOf(widgetPreferences.getWidgetTextColor())
-    }
-    var selectedTextColorName by remember {
-        mutableStateOf(findColorName(textColor, WidgetPreferences.TEXT_COLORS))
-    }
-    var selectedFontId by remember {
-        mutableStateOf(widgetPreferences.getSelectedFontId())
-    }
-    var selectedFontName by remember {
-        mutableStateOf(getFontDisplayName(widgetPreferences.getSelectedFontId(), context))
+    var selectedInterval by remember { mutableFloatStateOf(1f) }
+    var selectedLineBreakMode by remember { mutableIntStateOf(0) }
+    var backgroundColor by remember { mutableIntStateOf(0) }
+    var selectedColorName by remember { mutableStateOf("透明") }
+    var textColor by remember { mutableIntStateOf(0xFFFFFFFF.toInt()) }
+    var selectedTextColorName by remember { mutableStateOf("纯白") }
+    var selectedFontId by remember { mutableStateOf("serif") }
+    var selectedFontName by remember { mutableStateOf("衬线体") }
+    var fontOptions by remember { mutableStateOf<List<FontOption>>(emptyList()) }
+
+    // 初始化加载数据
+    LaunchedEffect(Unit) {
+        selectedInterval = widgetPreferences.getUpdateInterval(0)
+        selectedLineBreakMode = widgetPreferences.getLineBreakMode().value
+        backgroundColor = widgetPreferences.getWidgetBackgroundColor()
+        textColor = widgetPreferences.getWidgetTextColor()
+        fontOptions = widgetPreferences.getAllOptions()
+        selectedFontId = widgetPreferences.getSelectedFontId()
+        selectedFontName = getFontDisplayName(selectedFontId, fontOptions)
+        selectedColorName = findColorName(backgroundColor, WidgetColors.BACKGROUND_COLORS)
+        selectedTextColorName = findColorName(textColor, WidgetColors.TEXT_COLORS)
     }
 
     // BottomSheet 状态
@@ -256,7 +260,9 @@ fun SettingScreen(
                             },
                             modifier = Modifier.clickable {
                                 selectedInterval = hours
-                                widgetPreferences.saveUpdateInterval(0, hours)
+                                scope.launch {
+                                    widgetPreferences.saveUpdateInterval(0, hours)
+                                }
                                 SentenceUpdateWorker.scheduleUpdate(context, hours)
                                 showIntervalSheet = false
                             }
@@ -304,7 +310,13 @@ fun SettingScreen(
                             },
                             modifier = Modifier.clickable {
                                 selectedLineBreakMode = value
-                                widgetPreferences.saveLineBreakMode(LineBreakMode.fromValue(value))
+                                scope.launch {
+                                    widgetPreferences.saveLineBreakMode(
+                                        LineBreakMode.fromValue(
+                                            value
+                                        )
+                                    )
+                                }
                                 showLineBreakSheet = false
                             }
                         )
@@ -325,13 +337,18 @@ fun SettingScreen(
             onColorSelected = { color, name ->
                 backgroundColor = color
                 selectedColorName = name
-                widgetPreferences.saveWidgetBackgroundColor(color)
+                scope.launch {
+                    widgetPreferences.saveWidgetBackgroundColor(color)
+                }
                 // 发送广播刷新小组件
-                sendWidgetUpdateBroadcast(context)
+                val intent = Intent(SentenceWidgetProvider.ACTION_UPDATE_ALL)
+                context.sendBroadcast(intent)
                 showColorSheet = false
             },
             onCustomClick = { showCustomColorDialog = true },
-            onDismiss = { showColorSheet = false }
+            onDismiss = { showColorSheet = false },
+            colorOptions = WidgetColors.BACKGROUND_COLORS,
+            title = "选择背景色"
         )
     }
 
@@ -343,7 +360,9 @@ fun SettingScreen(
             onConfirm = { color, name ->
                 backgroundColor = color
                 selectedColorName = name
-                widgetPreferences.saveWidgetBackgroundColor(color)
+                scope.launch {
+                    widgetPreferences.saveWidgetBackgroundColor(color)
+                }
                 // 发送广播刷新小组件
                 sendWidgetUpdateBroadcast(context)
                 showCustomColorDialog = false
@@ -359,14 +378,16 @@ fun SettingScreen(
             onColorSelected = { color, name ->
                 textColor = color
                 selectedTextColorName = name
-                widgetPreferences.saveWidgetTextColor(color)
+                scope.launch {
+                    widgetPreferences.saveWidgetTextColor(color)
+                }
                 // 发送广播刷新小组件
                 sendWidgetUpdateBroadcast(context)
                 showTextColorSheet = false
             },
             onCustomClick = { showCustomTextColorDialog = true },
             onDismiss = { showTextColorSheet = false },
-            colorOptions = WidgetPreferences.TEXT_COLORS
+            colorOptions = WidgetColors.TEXT_COLORS
         )
     }
 
@@ -378,7 +399,9 @@ fun SettingScreen(
             onConfirm = { color, name ->
                 textColor = color
                 selectedTextColorName = name
-                widgetPreferences.saveWidgetTextColor(color)
+                scope.launch {
+                    widgetPreferences.saveWidgetTextColor(color)
+                }
                 // 发送广播刷新小组件
                 sendWidgetUpdateBroadcast(context)
                 showCustomTextColorDialog = false
@@ -391,11 +414,13 @@ fun SettingScreen(
         FontPickerBottomSheet(
             currentFontId = selectedFontId,
             currentFontName = selectedFontName,
-            fontOptions = FontOptions.getAllOptions(context),
+            fontOptions = fontOptions,
             onFontSelected = { fontId, fontName ->
                 selectedFontId = fontId
                 selectedFontName = fontName
-                widgetPreferences.saveSelectedFontId(fontId)
+                scope.launch {
+                    widgetPreferences.saveSelectedFontId(fontId)
+                }
                 showFontSheet = false
             },
             onAddFontClick = { showAddFontDialog = true },
@@ -408,7 +433,9 @@ fun SettingScreen(
         AddFontDialog(
             onDismiss = { showAddFontDialog = false },
             onFontAdded = { fontPath ->
-                widgetPreferences.addCustomFontPath(fontPath)
+                scope.launch {
+                    widgetPreferences.addCustomFontPath(fontPath)
+                }
                 showAddFontDialog = false
             }
         )
@@ -495,7 +522,7 @@ private fun ColorPickerBottomSheet(
     onColorSelected: (Int, String) -> Unit,
     onCustomClick: () -> Unit,
     onDismiss: () -> Unit,
-    colorOptions: List<BackgroundColorOption> = WidgetPreferences.BACKGROUND_COLORS,
+    colorOptions: List<BackgroundColorOption> = WidgetColors.BACKGROUND_COLORS,
     title: String = "选择颜色"
 ) {
     ModalBottomSheet(
@@ -892,9 +919,8 @@ private fun AddFontDialog(
 /**
  * 获取字体显示名称
  */
-private fun getFontDisplayName(fontId: String, context: android.content.Context): String {
-    val fontOption = FontOptions.getOptionById(context, fontId)
-    return fontOption?.name ?: "衬线体"
+private fun getFontDisplayName(fontId: String, fontOptions: List<FontOption>): String {
+    return fontOptions.find { it.id == fontId }?.name ?: "衬线体"
 }
 
 /**

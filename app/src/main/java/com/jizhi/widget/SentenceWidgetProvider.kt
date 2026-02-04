@@ -9,6 +9,7 @@ import android.widget.RemoteViews
 import com.jizhi.R
 import com.jizhi.data.WidgetPreferences
 import com.jizhi.data.getDefaultSentencesWithInfo
+import com.jizhi.data.local.DataStoreManager
 import com.jizhi.data.remote.JinrishiciClient
 import com.jizhi.ui.main.MainActivity
 import kotlinx.coroutines.CoroutineScope
@@ -89,7 +90,9 @@ class SentenceWidgetProvider : AppWidgetProvider() {
         // 当小组件被删除时，清理对应的配置
         val preferences = WidgetPreferences(context)
         for (appWidgetId in appWidgetIds) {
-            preferences.removeWidgetConfig(appWidgetId)
+            CoroutineScope(Dispatchers.IO).launch {
+                preferences.removeWidgetConfig(appWidgetId)
+            }
         }
     }
 
@@ -112,70 +115,76 @@ fun updateAppWidget(
     appWidgetId: Int
 ) {
     val preferences = WidgetPreferences(context)
-    val config = preferences.getWidgetConfig(appWidgetId)
+    val scope = CoroutineScope(Dispatchers.Main)
 
-    val textColor = preferences.getWidgetTextColor()
-    val backgroundColor = preferences.getWidgetBackgroundColor()
-    val titleColor = adjustAlpha(textColor, 0.7f)  // 标题颜色略淡
-    val authorColor = adjustAlpha(textColor, 0.5f) // 作者颜色更淡
-    config?.textSize ?: 16
-    val fontFamily = config?.fontFamily ?: "default"
-    val lineBreakMode = preferences.getLineBreakMode()
-
-    // 创建远程视图
-    val views = RemoteViews(context.packageName, R.layout.widget_sentence)
-
-    // 应用样式 - 背景色
-    views.setInt(R.id.widget_container, "setBackgroundColor", backgroundColor)
-
-    // 应用样式 - 文本颜色
-    views.setTextColor(R.id.widget_text, textColor)
-    views.setTextColor(R.id.widget_title, titleColor)
-    views.setTextColor(R.id.widget_dynasty_author, authorColor)
-
-    // 应用样式 - 字体大小（放大）
-    views.setTextViewTextSize(R.id.widget_text, android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
-    views.setTextViewTextSize(R.id.widget_title, android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
-    views.setTextViewTextSize(
-        R.id.widget_dynasty_author,
-        android.util.TypedValue.COMPLEX_UNIT_SP,
-        12f
-    )
-
-    // 设置字体样式
-    try {
-        val typeface = when (fontFamily) {
-            "serif" -> android.graphics.Typeface.SERIF
-            "monospace" -> android.graphics.Typeface.MONOSPACE
-            else -> android.graphics.Typeface.DEFAULT
+    scope.launch {
+        val config = withContext(Dispatchers.IO) {
+            preferences.getWidgetConfig(appWidgetId)
         }
-        val method = RemoteViews::class.java.getMethod(
-            "setTypeface",
-            Int::class.javaPrimitiveType,
-            android.graphics.Typeface::class.java
+
+        val textColor = withContext(Dispatchers.IO) {
+            preferences.getWidgetTextColor()
+        }
+        val backgroundColor = withContext(Dispatchers.IO) {
+            preferences.getWidgetBackgroundColor()
+        }
+        val lineBreakMode = withContext(Dispatchers.IO) {
+            preferences.getLineBreakMode()
+        }
+
+        val titleColor = adjustAlpha(textColor, 0.7f)
+        val authorColor = adjustAlpha(textColor, 0.5f)
+        config?.textSize ?: 16
+        val fontFamily = config?.fontFamily ?: "default"
+
+        // 创建远程视图
+        val views = RemoteViews(context.packageName, R.layout.widget_sentence)
+
+        // 应用样式 - 背景色
+        views.setInt(R.id.widget_container, "setBackgroundColor", backgroundColor)
+
+        // 应用样式 - 文本颜色
+        views.setTextColor(R.id.widget_text, textColor)
+        views.setTextColor(R.id.widget_title, titleColor)
+        views.setTextColor(R.id.widget_dynasty_author, authorColor)
+
+        // 应用样式 - 字体大小（放大）
+        views.setTextViewTextSize(R.id.widget_text, android.util.TypedValue.COMPLEX_UNIT_SP, 20f)
+        views.setTextViewTextSize(R.id.widget_title, android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+        views.setTextViewTextSize(
+            R.id.widget_dynasty_author,
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            12f
         )
-        method.invoke(views, R.id.widget_text, typeface)
-        method.invoke(views, R.id.widget_title, typeface)
-    } catch (e: Exception) {
-        // 字体设置失败时使用默认字体，忽略错误
-    }
 
-    // 异步获取诗句数据（优先使用缓存）
-    CoroutineScope(Dispatchers.IO).launch {
-        // 直接读取 SharedPreferences 获取缓存数据
-        val widgetPrefs = context.getSharedPreferences("jizhi_widget_prefs", Context.MODE_PRIVATE)
-        val cachedContent = widgetPrefs.getString("widget_sentence", "") ?: ""
-        val cachedTitle = widgetPrefs.getString("widget_title", "") ?: ""
-        val cachedDynasty = widgetPrefs.getString("widget_dynasty", "") ?: ""
-        val cachedAuthor = widgetPrefs.getString("widget_author", "") ?: ""
+        // 设置字体样式
+        try {
+            val typeface = when (fontFamily) {
+                "serif" -> android.graphics.Typeface.SERIF
+                "monospace" -> android.graphics.Typeface.MONOSPACE
+                else -> android.graphics.Typeface.DEFAULT
+            }
+            val method = RemoteViews::class.java.getMethod(
+                "setTypeface",
+                Int::class.javaPrimitiveType,
+                android.graphics.Typeface::class.java
+            )
+            method.invoke(views, R.id.widget_text, typeface)
+            method.invoke(views, R.id.widget_title, typeface)
+        } catch (e: Exception) {
+            // 字体设置失败时使用默认字体，忽略错误
+        }
 
-        val widgetData = if (cachedContent.isNotEmpty()) {
+        // 异步获取诗句数据（优先使用缓存）
+        val cachedData = DataStoreManager.getWidgetCacheData(context)
+
+        val widgetData = if (cachedData.content.isNotEmpty()) {
             // 使用缓存数据
-            val formattedContent = formatWidgetContent(cachedContent, lineBreakMode)
+            val formattedContent = formatWidgetContent(cachedData.content, lineBreakMode)
             WidgetData(
                 content = formattedContent,
-                title = cachedTitle.ifEmpty { "诗词" },
-                dynastyAuthor = "【${cachedDynasty.ifEmpty { "未知" }}】${cachedAuthor.ifEmpty { "未知" }}"
+                title = cachedData.title.ifEmpty { "诗词" },
+                dynastyAuthor = "【${cachedData.dynasty.ifEmpty { "未知" }}】${cachedData.author.ifEmpty { "未知" }}"
             )
         } else {
             // 没有缓存，从 API 获取
@@ -187,14 +196,15 @@ fun updateAppWidget(
                     val data = response.data
                     val origin = data.origin
 
-                    // 保存到缓存
+                    // 保存到缓存（清理朝代中的"代"字）
+                    val cleanDynasty = (origin?.dynasty ?: "-").removeSuffix("代")
                     JinrishiciClient.saveTodaySentenceForWidget(
                         context,
                         id = data.id,
                         content = data.content,
                         originContentList = origin?.content ?: emptyList(),
                         title = origin?.title ?: "诗词",
-                        dynasty = origin?.dynasty ?: "未知",
+                        dynasty = cleanDynasty,
                         author = origin?.author ?: "未知"
                     )
 
@@ -230,34 +240,22 @@ fun updateAppWidget(
             views.setTextViewText(R.id.widget_title, "《${widgetData.title}》")
             views.setTextViewText(R.id.widget_dynasty_author, widgetData.dynastyAuthor)
 
+            // 配置点击事件 - 打开主页
+            val configIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra(SentenceWidgetProvider.EXTRA_FROM_WIDGET, true)
+            }
+            val configPendingIntent = PendingIntent.getActivity(
+                context,
+                appWidgetId,
+                configIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_container, configPendingIntent)
+
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
     }
-
-    // 配置点击事件 - 打开主页
-    val configIntent = Intent(context, MainActivity::class.java).apply {
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        putExtra(SentenceWidgetProvider.EXTRA_FROM_WIDGET, true)
-    }
-    val configPendingIntent = PendingIntent.getActivity(
-        context,
-        appWidgetId,
-        configIntent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-    views.setOnClickPendingIntent(R.id.widget_container, configPendingIntent)
-
-    // 刷新按钮点击事件
-    Intent(context, SentenceWidgetProvider::class.java).apply {
-        action = SentenceWidgetProvider.ACTION_REFRESH
-        putExtra(SentenceWidgetProvider.EXTRA_WIDGET_ID, appWidgetId)
-    }
-
-    // 更新小组件
-    appWidgetManager.updateAppWidget(appWidgetId, views)
-
-    // 安排下一次更新
-    scheduleNextUpdate(context, appWidgetId, config?.updateIntervalHours ?: 1f)
 }
 
 /**
@@ -274,24 +272,26 @@ private fun adjustAlpha(color: Int, factor: Float): Int {
 /**
  * 小组件内容折行格式化
  * 参照主页 PoemFormatter 的逻辑
+ * 定时更新由 WorkManager 统一管理
  */
 private fun formatWidgetContent(
     content: String,
-    lineBreakMode: com.jizhi.data.LineBreakMode
+    lineBreakMode: com.jizhi.data.LineBreakMode,
+    maxCharsPerLine: Int = 10  // 小组件每行最大字符数（18sp 字体估算）
 ): String {
     return when (lineBreakMode) {
         com.jizhi.data.LineBreakMode.DEFAULT -> content
         com.jizhi.data.LineBreakMode.AUTO_PUNCTUATION -> {
-            // 智能标点换行：短诗按标点换行
-            if (content.length <= 20) {
+            // 智能标点换行：一行能显示下就不换行，否则按标点换行
+            if (content.length <= maxCharsPerLine) {
+                content
+            } else {
                 content
                     .replace("。", "。\n")
                     .replace("，", "，\n")
                     .replace("！", "！\n")
                     .replace("？", "？\n")
                     .trim()
-            } else {
-                content
             }
         }
 
@@ -311,63 +311,4 @@ private fun formatWidgetContent(
             result.toString().trim()
         }
     }
-}
-
-/**
- * 安排下一次自动更新
- */
-private fun scheduleNextUpdate(
-    context: Context,
-    appWidgetId: Int,
-    intervalHours: Float
-) {
-    if (intervalHours <= 0) return  // 如果设置为永不更新，则不安排
-
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-    val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
-        action = SentenceWidgetProvider.ACTION_REFRESH
-        putExtra(SentenceWidgetProvider.EXTRA_WIDGET_ID, appWidgetId)
-    }
-    val pendingIntent = PendingIntent.getBroadcast(
-        context,
-        appWidgetId,
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-
-    val intervalMillis = (intervalHours * 60 * 60 * 1000).toLong()
-    val triggerTime = System.currentTimeMillis() + intervalMillis
-
-    try {
-        alarmManager.setExactAndAllowWhileIdle(
-            android.app.AlarmManager.RTC_WAKEUP,
-            triggerTime,
-            pendingIntent
-        )
-    } catch (e: SecurityException) {
-        // 处理无法设置精确闹钟的情况
-        alarmManager.set(
-            android.app.AlarmManager.RTC_WAKEUP,
-            triggerTime,
-            pendingIntent
-        )
-    }
-}
-
-/**
- * 取消指定小组件的更新计划
- */
-fun cancelUpdate(context: Context, appWidgetId: Int) {
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-    val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
-        action = SentenceWidgetProvider.ACTION_REFRESH
-        putExtra(SentenceWidgetProvider.EXTRA_WIDGET_ID, appWidgetId)
-    }
-    val pendingIntent = PendingIntent.getBroadcast(
-        context,
-        appWidgetId,
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-    alarmManager.cancel(pendingIntent)
 }

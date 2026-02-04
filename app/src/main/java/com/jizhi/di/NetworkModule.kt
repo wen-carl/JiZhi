@@ -1,12 +1,9 @@
 package com.jizhi.di
 
-import android.content.Context
-import android.content.SharedPreferences
 import com.jizhi.data.remote.JinrishiciApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -24,7 +21,6 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val BASE_URL = "https://v2.jinrishici.com/"
-    private const val PREFS_NAME = "jizhi_token_prefs"
 
     /**
      * 提供 OkHttpClient
@@ -64,16 +60,5 @@ object NetworkModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): JinrishiciApiService {
         return retrofit.create(JinrishiciApiService::class.java)
-    }
-
-    /**
-     * 提供 SharedPreferences
-     */
-    @Provides
-    @Singleton
-    fun provideSharedPreferences(
-        @ApplicationContext context: Context
-    ): SharedPreferences {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 }

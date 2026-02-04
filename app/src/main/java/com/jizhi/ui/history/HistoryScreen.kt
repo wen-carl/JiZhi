@@ -45,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -373,14 +374,19 @@ fun SentenceCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-            // 中间：诗句内容
-            val context = LocalContext.current
-            val lineBreakMode = remember { WidgetPreferences(context).getLineBreakMode() }
-            val formattedContent = remember(sentence.content, lineBreakMode) {
-                PoemFormatter.format(sentence.content, lineBreakMode)
+        // 中间：诗句内容
+        val context = LocalContext.current
+        var lineBreakMode by remember { mutableStateOf<com.jizhi.data.LineBreakMode?>(null) }
+        LaunchedEffect(Unit) {
+            lineBreakMode = WidgetPreferences(context).getLineBreakMode()
+        }
+        if (lineBreakMode != null) {
+            val formattedContent = remember(sentence.content, lineBreakMode!!) {
+                PoemFormatter.format(sentence.content, lineBreakMode!!)
             }
             val lines = remember(formattedContent) { PoemFormatter.splitLines(formattedContent) }
 
@@ -496,6 +502,6 @@ private fun formatTime(timestamp: Long): String {
  * 格式化时间（完整格式）
  */
 private fun formatFullTime(timestamp: Long): String {
-    val format = SimpleDateFormat("yyyy年MM月dd日 HH:mm", Locale.getDefault())
-    return format.format(Date(timestamp))
+    return SimpleDateFormat("yyyy年MM月dd日 HH:mm", Locale.getDefault())
+        .format(Date(timestamp))
 }

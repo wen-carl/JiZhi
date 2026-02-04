@@ -14,6 +14,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkRequest
 import androidx.work.WorkerParameters
 import com.jizhi.data.remote.JinrishiciApiService
+import com.jizhi.data.remote.JinrishiciClient
 import com.jizhi.widget.SentenceWidgetProvider
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -21,11 +22,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
-/**
- * 句子更新 Worker
- * 使用 WorkManager 定时从 API 获取新句子并更新小组件
- * 支持 Hilt 依赖注入
- */
 @HiltWorker
 class SentenceUpdateWorker @AssistedInject constructor(
     @Assisted private val context: Context,
@@ -35,18 +31,10 @@ class SentenceUpdateWorker @AssistedInject constructor(
 
     companion object {
         const val WORK_NAME = "sentence_update_work"
-        const val PREFS_NAME = "jizhi_widget_prefs"
         const val KEY_INTERVAL_HOURS = "update_interval_hours"
 
-        /**
-         * 安排定时更新任务
-         *
-         * @param context 上下文
-         * @param intervalHours 更新间隔（小时），<= 0 表示不更新
-         */
         fun scheduleUpdate(context: Context, intervalHours: Float) {
             if (intervalHours <= 0) {
-                // 取消定时任务
                 WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
                 return
             }
@@ -54,7 +42,6 @@ class SentenceUpdateWorker @AssistedInject constructor(
             val workRequest = PeriodicWorkRequestBuilder<SentenceUpdateWorker>(
                 intervalHours.toLong(),
                 TimeUnit.HOURS,
-                // Flex interval: 允许在周期结束前15分钟内的任意时间执行
                 15,
                 TimeUnit.MINUTES
             )
@@ -78,16 +65,10 @@ class SentenceUpdateWorker @AssistedInject constructor(
                 )
         }
 
-        /**
-         * 取消定时更新任务
-         */
         fun cancelUpdate(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
         }
 
-        /**
-         * 立即执行一次更新
-         */
         fun executeNow(context: Context) {
             val workRequest = OneTimeWorkRequestBuilder<SentenceUpdateWorker>()
                 .build()
@@ -98,25 +79,20 @@ class SentenceUpdateWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            // 获取 Token
-            val prefs = context.getSharedPreferences("jizhi_token_prefs", Context.MODE_PRIVATE)
-            var token = prefs.getString("user_token", null)
+            var token = JinrishiciClient.getSavedToken(context)
 
-            if (token.isNullOrEmpty()) {
-                // 获取新 Token
+            if (token.isEmpty()) {
                 val tokenResponse = apiService.getToken()
                 if (tokenResponse.status == "success") {
                     token = tokenResponse.data
-                    prefs.edit().putString("user_token", token).apply()
+                    JinrishiciClient.saveToken(context, token)
                 } else {
                     return@withContext Result.retry()
                 }
             }
 
-            // 获取新句子
             val response = apiService.getSentence(token)
             if (response.status == "success" && response.data != null) {
-                // 发送广播更新所有小组件
                 val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
                     action = SentenceWidgetProvider.ACTION_UPDATE_ALL
                 }
