@@ -497,11 +497,3 @@ private fun formatTime(timestamp: Long): String {
     val format = SimpleDateFormat("MM月dd日 HH:mm", Locale.getDefault())
     return format.format(Date(timestamp))
 }
-
-/**
- * 格式化时间（完整格式）
- */
-private fun formatFullTime(timestamp: Long): String {
-    return SimpleDateFormat("yyyy年MM月dd日 HH:mm", Locale.getDefault())
-        .format(Date(timestamp))
-}

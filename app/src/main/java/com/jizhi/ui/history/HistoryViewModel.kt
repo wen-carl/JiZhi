@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jizhi.Constants
 import com.jizhi.data.local.SentenceEntity
 import com.jizhi.data.remote.JinrishiciClient
 import com.jizhi.repository.SentenceRepository
@@ -149,7 +150,7 @@ class HistoryViewModel @Inject constructor(
                 isFavorite = sentence.isFavorite
             )
             val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
-                action = SentenceWidgetProvider.ACTION_UPDATE_ALL
+                action = Constants.ACTION_UPDATE_ALL
             }
             context.sendBroadcast(intent)
         }

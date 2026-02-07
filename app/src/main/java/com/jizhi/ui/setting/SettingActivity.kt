@@ -61,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.jizhi.Constants
 import com.jizhi.data.BackgroundColorOption
 import com.jizhi.data.FontOption
 import com.jizhi.data.LineBreakMode
@@ -341,7 +342,7 @@ fun SettingScreen(
                     widgetPreferences.saveWidgetBackgroundColor(color)
                 }
                 // 发送广播刷新小组件
-                val intent = Intent(SentenceWidgetProvider.ACTION_UPDATE_ALL)
+                val intent = Intent(Constants.ACTION_UPDATE_ALL)
                 context.sendBroadcast(intent)
                 showColorSheet = false
             },
@@ -447,7 +448,7 @@ fun SettingScreen(
  */
 private fun sendWidgetUpdateBroadcast(context: android.content.Context) {
     val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
-        action = SentenceWidgetProvider.ACTION_UPDATE_ALL
+        action = Constants.ACTION_UPDATE_ALL
     }
     context.sendBroadcast(intent)
 }

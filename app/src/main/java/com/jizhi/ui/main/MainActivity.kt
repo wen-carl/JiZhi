@@ -10,10 +10,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.jizhi.Constants
 import com.jizhi.ui.history.HistoryActivity
 import com.jizhi.ui.setting.SettingActivity
 import com.jizhi.ui.theme.JiZhiTheme
-import com.jizhi.widget.SentenceWidgetProvider
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // 检查是否从小组件进入
-        val fromWidget = intent.getBooleanExtra(SentenceWidgetProvider.EXTRA_FROM_WIDGET, false)
+        val fromWidget = intent.getBooleanExtra(Constants.EXTRA_FROM_WIDGET, false)
 
         if (fromWidget) {
             // 从小组件进入

@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
+import com.jizhi.Constants
 import com.jizhi.R
 import com.jizhi.data.WidgetPreferences
 import com.jizhi.data.getDefaultSentencesWithInfo
@@ -32,14 +33,6 @@ private data class WidgetData(
  */
 class SentenceWidgetProvider : AppWidgetProvider() {
 
-    companion object {
-        const val ACTION_UPDATE_ALL = "com.jizhi.ACTION_UPDATE_ALL"
-        const val ACTION_OPEN_CONFIG = "com.jizhi.ACTION_OPEN_CONFIG"
-        const val ACTION_REFRESH = "com.jizhi.ACTION_REFRESH"
-        const val EXTRA_WIDGET_ID = "widget_id"
-        const val EXTRA_FROM_WIDGET = "from_widget"
-    }
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -55,7 +48,7 @@ class SentenceWidgetProvider : AppWidgetProvider() {
         super.onReceive(context, intent)
 
         when (intent.action) {
-            ACTION_UPDATE_ALL -> {
+            Constants.ACTION_UPDATE_ALL -> {
                 // 更新所有小组件
                 val appWidgetManager = AppWidgetManager.getInstance(context)
                 val componentName =
@@ -66,18 +59,18 @@ class SentenceWidgetProvider : AppWidgetProvider() {
                 }
             }
 
-            ACTION_OPEN_CONFIG -> {
+            Constants.ACTION_OPEN_CONFIG -> {
                 // 打开主页
                 val configIntent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    putExtra(EXTRA_FROM_WIDGET, true)
+                    putExtra(Constants.EXTRA_FROM_WIDGET, true)
                 }
                 context.startActivity(configIntent)
             }
 
-            ACTION_REFRESH -> {
+            Constants.ACTION_REFRESH -> {
                 // 刷新单个小组件
-                val appWidgetId = intent.getIntExtra(EXTRA_WIDGET_ID, -1)
+                val appWidgetId = intent.getIntExtra(Constants.EXTRA_WIDGET_ID, -1)
                 if (appWidgetId != -1) {
                     val appWidgetManager = AppWidgetManager.getInstance(context)
                     updateAppWidget(context, appWidgetManager, appWidgetId)
@@ -243,7 +236,7 @@ fun updateAppWidget(
             // 配置点击事件 - 打开主页
             val configIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                putExtra(SentenceWidgetProvider.EXTRA_FROM_WIDGET, true)
+                putExtra(Constants.EXTRA_FROM_WIDGET, true)
             }
             val configPendingIntent = PendingIntent.getActivity(
                 context,

@@ -1,6 +1,7 @@
 package com.jizhi.data.remote
 
 import android.content.Context
+import com.jizhi.Constants
 import com.jizhi.data.local.DataStoreManager
 import com.jizhi.data.local.WidgetSentenceData
 import okhttp3.OkHttpClient
@@ -11,15 +12,13 @@ import java.util.concurrent.TimeUnit
 
 object JinrishiciClient {
 
-    private const val BASE_URL = "https://v2.jinrishici.com/"
-
     val apiService: JinrishiciApiService by lazy {
         createApiService()
     }
 
     private fun createApiService(): JinrishiciApiService {
         val retrofit = Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(Constants.API_BASE_URL)
             .client(createOkHttpClient())
             .addConverterFactory(GsonConverterFactory.create())
             .build()

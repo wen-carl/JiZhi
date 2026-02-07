@@ -41,12 +41,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jizhi.R
 import com.jizhi.data.PoemFormatter
 import com.jizhi.data.WidgetPreferences
 import com.jizhi.data.local.SentenceEntity
@@ -73,7 +75,7 @@ fun MainScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("今日诗词") },
+                title = { Text(stringResource(R.string.app_bar_title)) },
                 actions = {
                     val isFavorite = when (uiState) {
                         is MainUiState.Success -> (uiState as MainUiState.Success).sentence.isFavorite
@@ -102,7 +104,7 @@ fun MainScreen(
                     ) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "喜欢",
+                            contentDescription = stringResource(R.string.content_description_favorite),
                             tint = if (canToggleFavorite) heartColor else heartColor.copy(alpha = 0.5f),
                             modifier = Modifier.scale(heartScale)
                         )
@@ -111,7 +113,7 @@ fun MainScreen(
                     IconButton(onClick = onSettingsClick) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "设置",
+                            contentDescription = stringResource(R.string.content_description_settings),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -119,7 +121,7 @@ fun MainScreen(
                     IconButton(onClick = onHistoryClick) {
                         Icon(
                             imageVector = Icons.Default.History,
-                            contentDescription = "历史记录",
+                            contentDescription = stringResource(R.string.content_description_history),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -178,7 +180,7 @@ private fun LoadingContent() {
     ) {
         CircularProgressIndicator()
         Spacer(modifier = Modifier.height(16.dp))
-        Text("正在获取今日诗词...")
+        Text(stringResource(R.string.loading_message))
     }
 }
 
@@ -290,7 +292,7 @@ private fun SuccessContent(
                 .widthIn(min = 120.dp),
             shape = RoundedCornerShape(26.dp)
         ) {
-            Text("换一句")
+            Text(stringResource(R.string.refresh_button))
         }
     }
 }
@@ -310,7 +312,7 @@ private fun ErrorContent(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onRetry) {
-            Text("重试")
+            Text(stringResource(R.string.retry_button))
         }
     }
 }
@@ -422,7 +424,7 @@ fun WidgetSentenceContent(
                 .widthIn(min = 120.dp),
             shape = RoundedCornerShape(26.dp)
         ) {
-            Text("换一句")
+            Text(stringResource(R.string.refresh_button))
         }
     }
 }

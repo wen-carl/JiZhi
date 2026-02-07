@@ -1,5 +1,6 @@
 package com.jizhi.di
 
+import com.jizhi.Constants
 import com.jizhi.data.remote.JinrishiciApiService
 import dagger.Module
 import dagger.Provides
@@ -19,8 +20,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-
-    private const val BASE_URL = "https://v2.jinrishici.com/"
 
     /**
      * 提供 OkHttpClient
@@ -47,7 +46,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(Constants.API_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

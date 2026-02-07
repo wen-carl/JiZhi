@@ -4,11 +4,11 @@ import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jizhi.Constants
 import com.jizhi.data.local.SentenceEntity
 import com.jizhi.data.remote.JinrishiciClient
 import com.jizhi.repository.SentenceRepository
 import com.jizhi.ui.detail.DetailActivity
-import com.jizhi.widget.SentenceWidgetProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -173,9 +173,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun updateWidget() {
-        val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
-            action = SentenceWidgetProvider.ACTION_UPDATE_ALL
-        }
+        val intent = Intent(Constants.ACTION_UPDATE_ALL)
         context.sendBroadcast(intent)
     }
 
@@ -240,14 +238,14 @@ class MainViewModel @Inject constructor(
 
     fun showDetail(sentence: SentenceEntity) {
         val intent = Intent(context, DetailActivity::class.java).apply {
-            putExtra(DetailActivity.EXTRA_ID, sentence.id)
-            putExtra(DetailActivity.EXTRA_CONTENT, sentence.content)
-            putExtra(DetailActivity.EXTRA_ORIGIN_CONTENT, sentence.originContent)
-            putExtra(DetailActivity.EXTRA_TRANSLATE, sentence.translate)
-            putExtra(DetailActivity.EXTRA_TITLE, sentence.title)
-            putExtra(DetailActivity.EXTRA_DYNASTY, sentence.dynasty)
-            putExtra(DetailActivity.EXTRA_AUTHOR, sentence.author)
-            putExtra(DetailActivity.EXTRA_IS_FAVORITE, sentence.isFavorite)
+            putExtra(Constants.EXTRA_ID, sentence.id)
+            putExtra(Constants.EXTRA_CONTENT, sentence.content)
+            putExtra(Constants.EXTRA_ORIGIN_CONTENT, sentence.originContent)
+            putExtra(Constants.EXTRA_TRANSLATE, sentence.translate)
+            putExtra(Constants.EXTRA_TITLE, sentence.title)
+            putExtra(Constants.EXTRA_DYNASTY, sentence.dynasty)
+            putExtra(Constants.EXTRA_AUTHOR, sentence.author)
+            putExtra(Constants.EXTRA_IS_FAVORITE, sentence.isFavorite)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         context.startActivity(intent)
@@ -255,14 +253,14 @@ class MainViewModel @Inject constructor(
 
     fun showWidgetDetail(widgetSentence: MainUiState.WidgetSentence) {
         val intent = Intent(context, DetailActivity::class.java).apply {
-            putExtra(DetailActivity.EXTRA_ID, widgetSentence.id)
-            putExtra(DetailActivity.EXTRA_CONTENT, widgetSentence.content)
-            putExtra(DetailActivity.EXTRA_ORIGIN_CONTENT, widgetSentence.originContent)
-            putExtra(DetailActivity.EXTRA_TRANSLATE, "")
-            putExtra(DetailActivity.EXTRA_TITLE, widgetSentence.title)
-            putExtra(DetailActivity.EXTRA_DYNASTY, widgetSentence.dynasty)
-            putExtra(DetailActivity.EXTRA_AUTHOR, widgetSentence.author)
-            putExtra(DetailActivity.EXTRA_IS_FAVORITE, widgetSentence.isFavorite)
+            putExtra(Constants.EXTRA_ID, widgetSentence.id)
+            putExtra(Constants.EXTRA_CONTENT, widgetSentence.content)
+            putExtra(Constants.EXTRA_ORIGIN_CONTENT, widgetSentence.originContent)
+            putExtra(Constants.EXTRA_TRANSLATE, "")
+            putExtra(Constants.EXTRA_TITLE, widgetSentence.title)
+            putExtra(Constants.EXTRA_DYNASTY, widgetSentence.dynasty)
+            putExtra(Constants.EXTRA_AUTHOR, widgetSentence.author)
+            putExtra(Constants.EXTRA_IS_FAVORITE, widgetSentence.isFavorite)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         context.startActivity(intent)
@@ -293,12 +291,13 @@ sealed class MainUiState {
         val id: String = "",
         val content: String,
         val originContentList: List<String> = emptyList(),
+        val translateList: List<String> = emptyList(),
         val title: String,
         val dynasty: String,
         val author: String,
         val isFavorite: Boolean = false
     ) : MainUiState() {
         val originContent: String
-            get() = originContentList.joinToString("\n")
+            get() = originContentList.joinToString(Constants.NEWLINE)
     }
 }

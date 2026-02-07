@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -54,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jizhi.Constants
+import com.jizhi.R
 import com.jizhi.data.LineBreakMode
 import com.jizhi.data.PoemType
 import com.jizhi.data.WidgetPreferences
@@ -68,17 +71,6 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class DetailActivity : ComponentActivity() {
-
-    companion object {
-        const val EXTRA_ID = "sentence_id"
-        const val EXTRA_CONTENT = "content"
-        const val EXTRA_ORIGIN_CONTENT = "origin_content"
-        const val EXTRA_TRANSLATE = "translate"
-        const val EXTRA_TITLE = "title"
-        const val EXTRA_DYNASTY = "dynasty"
-        const val EXTRA_AUTHOR = "author"
-        const val EXTRA_IS_FAVORITE = "is_favorite"
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,28 +104,28 @@ fun DetailScreen(
 
     // 初始化加载
     LaunchedEffect(Unit) {
-        val sentenceId = activity?.intent?.getStringExtra(DetailActivity.EXTRA_ID) ?: ""
-        val intentData = if (activity?.intent?.hasExtra(DetailActivity.EXTRA_CONTENT) == true) {
+        val sentenceId = activity?.intent?.getStringExtra(Constants.EXTRA_ID) ?: ""
+        val intentData = if (activity?.intent?.hasExtra(Constants.EXTRA_CONTENT) == true) {
             val originContentStr =
-                activity.intent.getStringExtra(DetailActivity.EXTRA_ORIGIN_CONTENT) ?: ""
+                activity.intent.getStringExtra(Constants.EXTRA_ORIGIN_CONTENT) ?: ""
             val originContentList = if (originContentStr.isNotEmpty()) {
-                originContentStr.split("\n").filter { it.isNotBlank() }
+                originContentStr.split(Constants.NEWLINE).filter { it.isNotBlank() }
             } else emptyList()
 
-            val translateStr = activity.intent.getStringExtra(DetailActivity.EXTRA_TRANSLATE) ?: ""
+            val translateStr = activity.intent.getStringExtra(Constants.EXTRA_TRANSLATE) ?: ""
             val translateList = if (translateStr.isNotEmpty()) {
-                translateStr.split("\n").filter { it.isNotBlank() }
+                translateStr.split(Constants.NEWLINE).filter { it.isNotBlank() }
             } else emptyList()
 
             IntentDataHolder(
-                content = activity.intent.getStringExtra(DetailActivity.EXTRA_CONTENT) ?: "",
+                content = activity.intent.getStringExtra(Constants.EXTRA_CONTENT) ?: "",
                 originContentList = originContentList,
                 translateList = translateList,
-                title = activity.intent.getStringExtra(DetailActivity.EXTRA_TITLE) ?: "",
-                dynasty = activity.intent.getStringExtra(DetailActivity.EXTRA_DYNASTY) ?: "",
-                author = activity.intent.getStringExtra(DetailActivity.EXTRA_AUTHOR) ?: "",
+                title = activity.intent.getStringExtra(Constants.EXTRA_TITLE) ?: "",
+                dynasty = activity.intent.getStringExtra(Constants.EXTRA_DYNASTY) ?: "",
+                author = activity.intent.getStringExtra(Constants.EXTRA_AUTHOR) ?: "",
                 isFavorite = activity.intent.getBooleanExtra(
-                    DetailActivity.EXTRA_IS_FAVORITE,
+                    Constants.EXTRA_IS_FAVORITE,
                     false
                 )
             )

@@ -13,6 +13,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
 import androidx.work.WorkerParameters
+import com.jizhi.Constants
 import com.jizhi.data.remote.JinrishiciApiService
 import com.jizhi.data.remote.JinrishiciClient
 import com.jizhi.widget.SentenceWidgetProvider
@@ -30,12 +31,9 @@ class SentenceUpdateWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
-        const val WORK_NAME = "sentence_update_work"
-        const val KEY_INTERVAL_HOURS = "update_interval_hours"
-
         fun scheduleUpdate(context: Context, intervalHours: Float) {
             if (intervalHours <= 0) {
-                WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+                WorkManager.getInstance(context).cancelUniqueWork(Constants.WORK_NAME)
                 return
             }
 
@@ -59,14 +57,14 @@ class SentenceUpdateWorker @AssistedInject constructor(
 
             WorkManager.getInstance(context)
                 .enqueueUniquePeriodicWork(
-                    WORK_NAME,
+                    Constants.WORK_NAME,
                     ExistingPeriodicWorkPolicy.UPDATE,
                     workRequest
                 )
         }
 
         fun cancelUpdate(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            WorkManager.getInstance(context).cancelUniqueWork(Constants.WORK_NAME)
         }
 
         fun executeNow(context: Context) {
@@ -94,7 +92,7 @@ class SentenceUpdateWorker @AssistedInject constructor(
             val response = apiService.getSentence(token)
             if (response.status == "success" && response.data != null) {
                 val intent = Intent(context, SentenceWidgetProvider::class.java).apply {
-                    action = SentenceWidgetProvider.ACTION_UPDATE_ALL
+                    action = Constants.ACTION_UPDATE_ALL
                 }
                 context.sendBroadcast(intent)
 

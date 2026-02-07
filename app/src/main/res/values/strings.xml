@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 应用名称 -->
-    <string name="app_name">JiZhi</string>
+    <string name="app_name">几枝</string>
 
     <!-- 默认值 -->
     <string name="default_sentence">今天也要加油哦！</string>
@@ -38,7 +38,6 @@
     <string name="clear_all_button">清空</string>
 
     <!-- 喜欢状态 -->
-    <string name="favorite_added">已喜欢</string>
     <string name="favorite_add">喜欢</string>
 
     <!-- 删除操作 -->
@@ -48,7 +47,6 @@
     <string name="detail_title">诗词详情</string>
     <string name="content_description_back_alt">返回</string>
     <string name="favorite_removed">取消喜欢</string>
-    <string name="favorite_added_alt">喜欢</string>
     <string name="recommendation_reason">推荐理由</string>
     <string name="tags_label">标签</string>
 
