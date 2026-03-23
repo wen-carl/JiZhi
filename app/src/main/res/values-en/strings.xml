@@ -3,6 +3,14 @@
     <!-- ==================== Application Basic Info ==================== -->
     <string name="app_name">JiZhi</string>
 
+    <!-- ==================== Language Settings ==================== -->
+    <string name="language_setting">Language</string>
+    <string name="language_system">System Default</string>
+    <string name="language_chinese">Chinese</string>
+    <string name="language_english">English</string>
+    <string name="language_select">Select Language</string>
+    <string name="language_changed">Language changed. Restart app to apply.</string>
+
     <!-- ==================== Main Screen ==================== -->
     <string name="app_bar_title">Daily Poetry</string>
     <string name="content_description_favorite">Favorite</string>
@@ -33,7 +41,9 @@
 
     <!-- ==================== Favorite Status ==================== -->
     <string name="favorite_add">Favorite</string>
+    <string name="favorite_already">Favorited</string>
     <string name="favorite_removed">Remove Favorite</string>
+    <string name="update_to_widget">Update to Widget</string>
 
     <!-- ==================== Delete Action ==================== -->
     <string name="delete_action">Delete</string>
@@ -49,6 +59,7 @@
     <string name="settings_title">Settings</string>
     <string name="widget_update_interval">Widget Update Interval</string>
     <string name="line_break_mode">Line Break Mode</string>
+    <string name="line_break_poem_display">Poetry Line Break</string>
     <string name="app_font">App Font</string>
     <string name="widget_background_color">Widget Background Color</string>
     <string name="widget_text_color">Widget Text Color</string>

@@ -3,6 +3,20 @@
     <!-- 应用名称 -->
     <string name="app_name">几枝</string>
 
+    <!-- ==================== 语言设置 ==================== -->
+    <string name="language_setting">语言设置</string>
+    <string name="language_setting_en">Language</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_system_en">System Default</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_chinese_en">Chinese</string>
+    <string name="language_english">英文</string>
+    <string name="language_english_en">English</string>
+    <string name="language_select">选择语言</string>
+    <string name="language_select_en">Select Language</string>
+    <string name="language_changed">语言已切换，重启应用后生效</string>
+    <string name="language_changed_en">Language changed. Restart app to apply.</string>
+
     <!-- 默认值 -->
     <string name="default_sentence">今天也要加油哦！</string>
     <string name="default_title">诗词</string>
@@ -39,6 +53,9 @@
 
     <!-- 喜欢状态 -->
     <string name="favorite_add">喜欢</string>
+    <string name="favorite_already">已喜欢</string>
+    <string name="favorite_removed">取消喜欢</string>
+    <string name="update_to_widget">更新到小组件</string>
 
     <!-- 删除操作 -->
     <string name="delete_action">删除</string>
@@ -46,21 +63,124 @@
     <!-- 详情页面 -->
     <string name="detail_title">诗词详情</string>
     <string name="content_description_back_alt">返回</string>
-    <string name="favorite_removed">取消喜欢</string>
     <string name="recommendation_reason">推荐理由</string>
     <string name="tags_label">标签</string>
+    <string name="translate_label">翻译</string>
+
+    <!-- 设置页面 -->
+    <string name="settings_title">设置</string>
+    <string name="widget_update_interval">小组件更新频率</string>
+    <string name="line_break_mode">换行模式</string>
+    <string name="line_break_poem_display">诗词显示换行</string>
+    <string name="app_font">应用字体</string>
+    <string name="widget_background_color">小组件背景色</string>
+    <string name="widget_text_color">小组件文字色</string>
+
+    <!-- 选择器标题 -->
+    <string name="select_interval">选择更新频率</string>
+    <string name="select_line_break">选择换行模式</string>
+    <string name="select_color">选择颜色</string>
+    <string name="select_background_color">选择背景色</string>
+    <string name="select_font">选择字体</string>
+
+    <!-- 自定义颜色 -->
+    <string name="custom_color">自定义颜色</string>
+    <string name="custom_color_hint">输入 ARGB 格式颜色值</string>
+    <string name="custom_color_hint_full">输入 ARGB 格式（例如：#80000000）</string>
+    <string name="color_value">颜色值</string>
+    <string name="preview_label">预览：</string>
+    <string name="confirm_button">确定</string>
+    <string name="color_format_error">格式无效，请输入 #AARRGGBB 或 RRGGBB 格式</string>
+
+    <!-- 自定义字体 -->
+    <string name="add_custom_font">添加自定义字体</string>
+    <string name="add_custom_font_desc">选择 .ttf 或 .otf 字体文件</string>
+    <string name="custom_font_hint">注意：自定义字体将应用于整个应用，包括首页、详情页、历史记录和小组件。</string>
+    <string name="select_font_file">选择字体文件（.ttf 或 .otf）</string>
+    <string name="select_file">选择文件</string>
 
     <!-- 小组件配置 -->
     <string name="widget_config_title">小组件配置</string>
     <string name="widget_config_description">点击小组件可打开配置界面</string>
     <string name="widget_config_save">保存配置</string>
+    <string name="widget_selected">已选择</string>
 
     <!-- 错误消息 -->
     <string name="error_network">网络错误，请检查网络连接</string>
     <string name="error_unknown">发生未知错误</string>
     <string name="error_load_failed">加载失败</string>
+    <string name="error_invalid_id">无效的诗词 ID</string>
+    <string name="error_not_found">未找到诗词</string>
+    <string name="error_operation_failed">操作失败</string>
+    <string name="error_load_history_failed">加载历史失败：%1$s</string>
+    <string name="error_delete_failed">删除失败：%1$s</string>
+    <string name="error_clear_failed">清空失败：%1$s</string>
+    <string name="error_widget_no_data">小组件暂无数据</string>
+    <string name="error_no_data">暂无数据</string>
+    <string name="error_fetch_failed">获取数据失败</string>
+    <string name="error_network_request_failed">网络请求失败</string>
+    <string name="error_api_failed">API 请求失败</string>
 
     <!-- 小组件 -->
     <string name="widget_description">在桌面显示励志句子的小组件</string>
     <string name="widget_empty_message">今天也要加油哦！</string>
+
+    <!-- 格式字符串 -->
+    <string name="format_dynasty_author">【%1$s】%2$s</string>
+    <string name="format_title">「%1$s」</string>
+
+    <!-- 更新频率选项 -->
+    <string name="interval_15_min">15 分钟</string>
+    <string name="interval_30_min">30 分钟</string>
+    <string name="interval_1_hour">1 小时</string>
+    <string name="interval_2_hours">2 小时</string>
+    <string name="interval_3_hours">3 小时</string>
+    <string name="interval_6_hours">6 小时</string>
+    <string name="interval_8_hours">8 小时</string>
+    <string name="interval_1_day">1 天</string>
+    <string name="interval_never">永不自动更新</string>
+
+    <!-- 换行模式 -->
+    <string name="line_break_default">默认</string>
+    <string name="line_break_auto">智能标点</string>
+    <string name="line_break_force">强制标点</string>
+    <string name="line_break_default_desc">跟随系统默认规则</string>
+    <string name="line_break_auto_desc">行满时在「。」或「，」处换行</string>
+    <string name="line_break_force_desc">强制在「，」后换行（不在「。」后换行）</string>
+
+    <!-- 背景色选项 -->
+    <string name="color_transparent">透明</string>
+    <string name="color_white">纯白</string>
+    <string name="color_black">纯黑</string>
+    <string name="color_light_gray">浅灰</string>
+    <string name="color_dark_gray">深灰</string>
+    <string name="color_light_blue">淡蓝</string>
+    <string name="color_light_green">淡绿</string>
+    <string name="color_light_yellow">淡黄</string>
+    <string name="color_light_pink">淡粉</string>
+    <string name="color_light_purple">淡紫</string>
+    <string name="color_semi_black">半透明黑</string>
+    <string name="color_semi_white">半透明白</string>
+
+    <!-- 文字色选项 -->
+    <string name="text_color_white">纯白</string>
+    <string name="text_color_black">纯黑</string>
+    <string name="text_color_light_gray">浅灰</string>
+    <string name="text_color_dark_gray">深灰</string>
+    <string name="text_color_light_red">淡红</string>
+    <string name="text_color_light_blue">淡蓝</string>
+    <string name="text_color_light_green">淡绿</string>
+    <string name="text_color_gold">金色</string>
+
+    <!-- 小组件尺寸选项 -->
+    <string name="widget_size_small">小 - 1x1</string>
+    <string name="widget_size_medium">中 - 2x2</string>
+    <string name="widget_size_large">大 - 2x4</string>
+    <string name="widget_size_extra_large">特大 - 3x4</string>
+
+    <!-- 字体选项 -->
+    <string name="font_default">系统默认</string>
+    <string name="font_sans_serif">无衬线体</string>
+    <string name="font_serif">衬线体</string>
+    <string name="font_monospace">等宽体</string>
 </resources>

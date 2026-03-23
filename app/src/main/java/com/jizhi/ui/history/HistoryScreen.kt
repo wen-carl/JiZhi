@@ -60,7 +60,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jizhi.R
 import com.jizhi.data.PoemFormatter
 import com.jizhi.data.WidgetPreferences
 import com.jizhi.data.local.SentenceEntity
@@ -92,7 +94,7 @@ fun HistoryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "历史记录",
+                        text = stringResource(R.string.history_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Medium
                     )
@@ -101,7 +103,7 @@ fun HistoryScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回",
+                            contentDescription = stringResource(R.string.content_description_back),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -116,7 +118,7 @@ fun HistoryScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "清空历史"
+                                contentDescription = stringResource(R.string.clear_history)
                             )
                         }
                     }
@@ -148,7 +150,7 @@ fun HistoryScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "正在加载历史记录...",
+                                text = stringResource(R.string.history_loading),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -184,13 +186,13 @@ fun HistoryScreen(
                         }
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = "暂无历史记录",
+                            text = stringResource(R.string.history_empty),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "从小组件获取诗句后将自动保存",
+                            text = stringResource(R.string.history_empty_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -237,10 +239,10 @@ fun HistoryScreen(
     showDeleteDialog?.let { sentence ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("删除确认") },
+            title = { Text(stringResource(R.string.delete_confirmation_title)) },
             text = {
                 Column {
-                    Text("确定要删除这条记录吗？")
+                    Text(stringResource(R.string.delete_confirmation_message))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "\"${sentence.content}\"",
@@ -261,12 +263,12 @@ fun HistoryScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("删除")
+                    Text(stringResource(R.string.delete_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel_button))
                 }
             }
         )
@@ -276,8 +278,8 @@ fun HistoryScreen(
     if (showClearAllDialog) {
         AlertDialog(
             onDismissRequest = { showClearAllDialog = false },
-            title = { Text("清空确认") },
-            text = { Text("确定要清空所有历史记录吗？此操作不可恢复。") },
+            title = { Text(stringResource(R.string.clear_all_confirmation_title)) },
+            text = { Text(stringResource(R.string.clear_all_confirmation_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -288,12 +290,12 @@ fun HistoryScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("清空")
+                    Text(stringResource(R.string.clear_all_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearAllDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel_button))
                 }
             }
         )
@@ -358,7 +360,7 @@ fun SentenceCard(
             ) {
                 // 来源信息
                 Text(
-                    text = "【${sentence.dynasty}】${sentence.author}《${sentence.title}》",
+                    text = stringResource(R.string.format_dynasty_author, sentence.dynasty, sentence.author) + stringResource(R.string.format_title, sentence.title),
                     style = MaterialTheme.typography.labelMedium,
                     fontFamily = FontFamily.Serif,
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
@@ -445,7 +447,7 @@ fun SentenceCard(
                 ) {
                     Icon(
                         imageVector = if (sentence.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (sentence.isFavorite) "已喜欢" else "喜欢",
+                        contentDescription = if (sentence.isFavorite) stringResource(R.string.favorite_already) else stringResource(R.string.favorite_add),
                         tint = heartColor,
                         modifier = Modifier
                             .size(20.dp)
@@ -465,7 +467,7 @@ fun SentenceCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Widgets,
-                        contentDescription = "更新到小组件",
+                        contentDescription = stringResource(R.string.update_to_widget),
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp)
                     )
@@ -480,7 +482,7 @@ fun SentenceCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "删除",
+                        contentDescription = stringResource(R.string.delete_action),
                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
                         modifier = Modifier.size(20.dp)
                     )

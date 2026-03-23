@@ -134,8 +134,8 @@ dependencies {
 }
 
 // Debug 构建完成后自动安装到模拟器
-afterEvaluate {
-    tasks.named("assembleDebug") {
-        finalizedBy("installDebug")
-    }
-}
+//afterEvaluate {
+//    tasks.named("assembleDebug") {
+//        finalizedBy("installDebug")
+//    }
+//}

@@ -274,7 +274,7 @@ private fun SuccessContent(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "【${sentence.dynasty}】${sentence.author}",
+                    text = stringResource(R.string.format_dynasty_author, sentence.dynasty, sentence.author),
                     fontSize = 13.sp,
                     fontFamily = FontFamily.Serif,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -407,7 +407,7 @@ fun WidgetSentenceContent(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "【${widgetSentence.dynasty}】${widgetSentence.author}",
+                    text = stringResource(R.string.format_dynasty_author, widgetSentence.dynasty, widgetSentence.author),
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

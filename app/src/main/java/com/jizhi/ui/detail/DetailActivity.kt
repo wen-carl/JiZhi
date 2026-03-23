@@ -1,5 +1,7 @@
 package com.jizhi.ui.detail
 
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -56,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jizhi.Constants
+import com.jizhi.LocaleManager
 import com.jizhi.R
 import com.jizhi.data.LineBreakMode
 import com.jizhi.data.PoemType
@@ -71,6 +74,14 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class DetailActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        val locale = LocaleManager.getSavedLocale(newBase)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

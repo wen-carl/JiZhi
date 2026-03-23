@@ -1,6 +1,8 @@
 package com.jizhi.ui.setting
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -48,6 +50,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -59,9 +62,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.jizhi.Constants
+import com.jizhi.LanguageConstants
+import com.jizhi.LocaleManager
+import com.jizhi.R
 import com.jizhi.data.BackgroundColorOption
 import com.jizhi.data.FontOption
 import com.jizhi.data.LineBreakMode
@@ -69,11 +76,13 @@ import com.jizhi.data.LineBreakModeOptions
 import com.jizhi.data.UpdateIntervalOptions
 import com.jizhi.data.WidgetColors
 import com.jizhi.data.WidgetPreferences
+import com.jizhi.ui.main.MainActivity
 import com.jizhi.ui.theme.JiZhiTheme
 import com.jizhi.widget.SentenceWidgetProvider
 import com.jizhi.worker.SentenceUpdateWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * 设置页面
@@ -81,6 +90,14 @@ import kotlinx.coroutines.launch
  */
 @AndroidEntryPoint
 class SettingActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        val locale = LocaleManager.getSavedLocale(newBase)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -151,12 +168,12 @@ fun SettingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设置") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.content_description_back_alt)
                         )
                     }
                 }
@@ -168,10 +185,23 @@ fun SettingScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // 语言设置
+            item {
+                LanguageSettingItem(
+                    onLanguageSelected = { language ->
+                        LocaleManager.setLocale(context, language)
+                    }
+                )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
             // 小组件更新周期设置
             item {
                 SettingItem(
-                    title = "小组件更新周期",
+                    title = stringResource(R.string.widget_update_interval),
                     value = getIntervalDisplayText(selectedInterval),
                     onClick = { showIntervalSheet = true }
                 )
@@ -184,7 +214,7 @@ fun SettingScreen(
             // 换行模式设置
             item {
                 SettingItem(
-                    title = "诗词显示换行",
+                    title = stringResource(R.string.line_break_poem_display),
                     value = LineBreakModeOptions.options.find { it.first == selectedLineBreakMode }?.second
                         ?: "",
                     onClick = { showLineBreakSheet = true }
@@ -198,7 +228,7 @@ fun SettingScreen(
             // 字体设置
             item {
                 SettingItemWithFontPreview(
-                    title = "应用字体",
+                    title = stringResource(R.string.app_font),
                     value = selectedFontName,
                     onClick = { showFontSheet = true }
                 )
@@ -211,7 +241,7 @@ fun SettingScreen(
             // 小组件背景色设置
             item {
                 SettingItemWithPreview(
-                    title = "小组件背景色",
+                    title = stringResource(R.string.widget_background_color),
                     value = selectedColorName,
                     color = backgroundColor,
                     onClick = { showColorSheet = true }
@@ -225,7 +255,7 @@ fun SettingScreen(
             // 小组件文本颜色设置
             item {
                 SettingItemWithPreview(
-                    title = "小组件文本颜色",
+                    title = stringResource(R.string.widget_text_color),
                     value = selectedTextColorName,
                     color = textColor,
                     onClick = { showTextColorSheet = true }
@@ -241,7 +271,7 @@ fun SettingScreen(
         ) {
             Column(modifier = Modifier.padding(bottom = 32.dp)) {
                 Text(
-                    text = "选择更新周期",
+                    text = stringResource(R.string.select_interval),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                 )
@@ -254,7 +284,7 @@ fun SettingScreen(
                                 if (selectedInterval == hours) {
                                     Icon(
                                         imageVector = Icons.Default.Check,
-                                        contentDescription = "已选择",
+                                        contentDescription = stringResource(R.string.widget_selected),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -284,7 +314,7 @@ fun SettingScreen(
         ) {
             Column(modifier = Modifier.padding(bottom = 32.dp)) {
                 Text(
-                    text = "选择换行模式",
+                    text = stringResource(R.string.select_line_break),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                 )
@@ -304,7 +334,7 @@ fun SettingScreen(
                                 if (selectedLineBreakMode == value) {
                                     Icon(
                                         imageVector = Icons.Default.Check,
-                                        contentDescription = "已选择",
+                                        contentDescription = stringResource(R.string.widget_selected),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -349,7 +379,7 @@ fun SettingScreen(
             onCustomClick = { showCustomColorDialog = true },
             onDismiss = { showColorSheet = false },
             colorOptions = WidgetColors.BACKGROUND_COLORS,
-            title = "选择背景色"
+            title = stringResource(R.string.select_background_color)
         )
     }
 
@@ -504,14 +534,6 @@ private fun SettingItemWithPreview(
     )
 }
 
-private fun getIntervalDisplayText(hours: Float): String {
-    return UpdateIntervalOptions.options.find { it.first == hours }?.second ?: "未知"
-}
-
-private fun findColorName(color: Int, options: List<BackgroundColorOption>): String {
-    return options.find { it.color == color }?.name ?: "自定义"
-}
-
 /**
  * 颜色选择 BottomSheet
  */
@@ -524,7 +546,7 @@ private fun ColorPickerBottomSheet(
     onCustomClick: () -> Unit,
     onDismiss: () -> Unit,
     colorOptions: List<BackgroundColorOption> = WidgetColors.BACKGROUND_COLORS,
-    title: String = "选择颜色"
+    title: String = stringResource(R.string.select_color)
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss
@@ -571,7 +593,7 @@ private fun ColorPickerBottomSheet(
 
             // 自定义选项
             ListItem(
-                headlineContent = { Text("自定义颜色") },
+                headlineContent = { Text(stringResource(R.string.custom_color)) },
                 supportingContent = { Text("输入ARGB格式颜色值") },
                 leadingContent = {
                     Icon(
@@ -584,7 +606,7 @@ private fun ColorPickerBottomSheet(
                     if (currentColorName == "自定义") {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "已选择",
+                            contentDescription = stringResource(R.string.widget_selected),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -680,7 +702,7 @@ private fun CustomColorDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "预览：",
+                        text = stringResource(R.string.preview_label),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -795,7 +817,7 @@ private fun FontPickerBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "选择字体",
+                text = stringResource(R.string.select_font),
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -830,7 +852,7 @@ private fun FontPickerBottomSheet(
                             if (currentFontId == fontOption.id) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "已选择",
+                                    contentDescription = stringResource(R.string.widget_selected),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -846,7 +868,7 @@ private fun FontPickerBottomSheet(
 
             // 添加自定义字体
             ListItem(
-                headlineContent = { Text("添加自定义字体") },
+                headlineContent = { Text(stringResource(R.string.add_custom_font)) },
                 supportingContent = { Text("从文件选择 .ttf 或 .otf 字体文件") },
                 leadingContent = {
                     Icon(
@@ -942,4 +964,149 @@ private fun copyFontToPrivateDir(context: android.content.Context, uri: Uri): St
     } catch (e: Exception) {
         null
     }
+}
+
+/**
+ * 获取颜色名称
+ */
+private fun findColorName(color: Int, colors: List<BackgroundColorOption>): String {
+    return colors.find { it.color == color }?.name ?: "透明"
+}
+
+/**
+ * 获取更新频率显示文本
+ */
+private fun getIntervalDisplayText(intervalHours: Float): String {
+    return when (intervalHours) {
+        0.25f -> "15分钟"
+        0.5f -> "30分钟"
+        1f -> "1小时"
+        2f -> "2小时"
+        3f -> "3小时"
+        6f -> "6小时"
+        8f -> "8小时"
+        24f -> "1天"
+        -1f -> "永不自动更新"
+        else -> "1小时"
+    }
+}
+
+/**
+ * 语言设置项
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LanguageSettingItem(
+    onLanguageSelected: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val activity = context as? android.app.Activity
+    var showLanguageSheet by remember { mutableStateOf(false) }
+    val locale by LocaleManager.currentLocale.collectAsState()
+
+    val currentLanguage = when (locale.language) {
+        "zh" -> "chinese"
+        "en" -> "english"
+        else -> "system"
+    }
+
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.language_setting)) },
+        supportingContent = {
+            Text(
+                when (currentLanguage) {
+                    "chinese" -> stringResource(R.string.language_chinese)
+                    "english" -> stringResource(R.string.language_english)
+                    else -> stringResource(R.string.language_system)
+                }
+            )
+        },
+        trailingContent = {
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        modifier = Modifier.clickable { showLanguageSheet = true }
+    )
+
+    // 语言选择 BottomSheet
+    if (showLanguageSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showLanguageSheet = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.language_select),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+
+                // 跟随系统
+                LanguageOptionItem(
+                    title = stringResource(R.string.language_system),
+                    isSelected = currentLanguage == "system",
+                    onClick = {
+                        LocaleManager.setLocale(context, LanguageConstants.Language.SYSTEM.value)
+                        showLanguageSheet = false
+                        onLanguageSelected(LanguageConstants.Language.SYSTEM.value)
+                        activity?.recreate()
+                    }
+                )
+
+                // 中文
+                LanguageOptionItem(
+                    title = stringResource(R.string.language_chinese),
+                    isSelected = currentLanguage == "chinese",
+                    onClick = {
+                        LocaleManager.setLocale(context, LanguageConstants.Language.CHINESE.value)
+                        showLanguageSheet = false
+                        onLanguageSelected(LanguageConstants.Language.CHINESE.value)
+                        activity?.recreate()
+                    }
+                )
+
+                // 英文
+                LanguageOptionItem(
+                    title = stringResource(R.string.language_english),
+                    isSelected = currentLanguage == "english",
+                    onClick = {
+                        LocaleManager.setLocale(context, LanguageConstants.Language.ENGLISH.value)
+                        showLanguageSheet = false
+                        onLanguageSelected(LanguageConstants.Language.ENGLISH.value)
+                        activity?.recreate()
+                    }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 语言选项项
+ */
+@Composable
+private fun LanguageOptionItem(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        trailingContent = {
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
 }

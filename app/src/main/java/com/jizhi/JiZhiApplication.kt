@@ -25,6 +25,7 @@ class JiZhiApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        LocaleHelper.initLocale(this)
         schedulePeriodicWork()
     }
 
