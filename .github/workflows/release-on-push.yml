@@ -1,0 +1,122 @@
+name: Build & Release on Push
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get last tag
+        id: get_tag
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.00.00")
+          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Calculate next tag
+        id: next_tag
+        run: |
+          LAST_TAG=${{ steps.get_tag.outputs.last_tag }}
+          
+          # Parse x.y.z format
+          IFS='.' read -r x y z <<< "$LAST_TAG"
+          x=${x:-0}
+          y=${y:-0}
+          z=${z:-0}
+          
+          # Increment z (default)
+          z=$((z + 1))
+          
+          # Handle overflow (max 99)
+          if [ $z -ge 100 ]; then
+            z=0
+            y=$((y + 1))
+          fi
+          if [ $y -ge 100 ]; then
+            y=0
+            x=$((x + 1))
+          fi
+          if [ $x -ge 100 ]; then
+            x=99
+            y=99
+            z=99
+          fi
+          
+          # Format with leading zeros (2 digits each)
+          NEW_TAG=$(printf "%02d.%02d.%02d" $x $y $z)
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "Generated new tag: $NEW_TAG (from $LAST_TAG)"
+
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 36
+
+      - name: Decode keystore
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LAST_TAG=${{ steps.get_tag.outputs.last_tag }}
+          CHANGELOG=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" 2>/dev/null || git log --pretty=format:"- %s (%h)" -n 50)
+          
+          # Truncate if too long
+          if [ ${#CHANGELOG} -gt 5000 ]; then
+            CHANGELOG="${CHANGELOG:0:5000}"
+            CHANGELOG="$CHANGELOG..."
+          fi
+          
+          echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.next_tag.outputs.new_tag }}
+          name: Release ${{ steps.next_tag.outputs.new_tag }}
+          body: |
+            ## Changes in this release
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Download
+            
+            Download the APK from the Assets section.
+          files: app/build/outputs/apk/release/app-release.apk
+          draft: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag ${{ steps.next_tag.outputs.new_tag }}
+          git push origin ${{ steps.next_tag.outputs.new_tag }}

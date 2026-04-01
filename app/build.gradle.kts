@@ -43,7 +43,9 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("release")
+            versionNameSuffix = ".debug"
         }
     }
     compileOptions {

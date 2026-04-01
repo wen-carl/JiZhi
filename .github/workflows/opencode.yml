@@ -11,7 +11,7 @@ jobs:
   opencode:
     runs-on: ubuntu-latest
     # 仅当评论内容包含 @opencode 或 /oc 时触发
-    if: github.event.comment.body contains '@opencode' || github.event.comment.body contains '/oc'
+    if: contains(github.event.comment.body, '@opencode') || contains(github.event.comment.body, '/oc')
 
     steps:
     # 1. 检出代码仓库
